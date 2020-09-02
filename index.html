@@ -3,17 +3,43 @@
 <head>
 	<title>rgnt</title>
 
-	<link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,400;0,700;1,300;1,900&display=swap" rel="stylesheet">
-	<link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@100;300;400;700&family=Roboto:ital,wght@0,100;0,400;0,700;1,300;1,900&display=swap" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@100;300;400;700&family=Roboto:ital,wght@1,300;1,900&display=swap" rel="stylesheet">
 
+ 	<script type="text/javascript" src="sources/js/dist/font-awesome.min.js"></script>
+ 	<script type="text/javascript" src="sources/js/dist/jquery-3.5.1.min.js"></script>
+ 	<script type="text/javascript" src="sources/js/dist/clipboard.min.js"></script>
+ 	<script type="text/javascript" src="sources/js/main.js"></script>
+
+	<link rel="stylesheet" type="text/css" href="sources/css/animate.min.css">
 	<link rel="stylesheet" type="text/css" href="sources/css/normalize.css">
 	<link rel="stylesheet" type="text/css" href="sources/css/common.css">
 
 </head>
-<body>
+<body onload="showContact();">
 	<header>
-		<p id="header-banner-text">rgnt</p>
+		<div id="header-content">
+			<p id="header-banner-name"    class="banner-text">rgnt</p>
+			<p id="header-banner-aliases" class="banner-text">(rgnter, regent)</p>
+
+			<div id="contact">
+				<a href="https://twitter.com/rgnt101" target="_blank">
+					<i class="fab fa-twitter-square twitter-hover"></i>
+				</a>
+				<a data-clipboard-text="rgnt#5029" class="discord-id-copy" onclick="showAlert('Copied username and tag.')">
+					<i class="fab fa-discord"></i>
+				</a>
+				<a href="https://github.com/rgnter"  target="_blank">
+					<i class="fab fa-github"></i>
+				</a>
+			</div>
+		</div>	
 	</header>
+
+	<footer>
+		<div id="alert">
+			<span class="content">You should see this!</span>
+		</div>
+	</footer>
 
 </body>
 </html>

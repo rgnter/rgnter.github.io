@@ -1,33 +1,89 @@
+::-moz-selection { /* Code for Firefox */
+  color: black;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+::selection {
+  color: black;
+  background: rgba(255, 255, 255, 0.9);
+}
+
 body {
-	background: red;
+	background: #111;
+	background: url('../img/noise.png');
 }
 
 header {
-	position: absolute;
 	width: 100%;
 	height: 100%;
 	margin: 0;
 	padding: 0px;
-	background: url('../img/noise.png');
-
-
-
 }
 
-#header-banner-text {
+.banner-text {
 	font-size: 30px;
 	font-family: 'Roboto Mono';
-	font-weight: bold;
+	font-weight: 900;
 	color: white;
 	text-align: center;
-
-	margin: 20% auto;
+}
+#header-banner-name {
+	margin: 20% auto 0;
 	padding: 5px;
 	width: 200px;
 
 	background-color: rgba(33,33,33, 0.2);
-
 }
-#header-banner-text .highlight {	
 
+#header-banner-aliases {	
+	font-weight: 300;
+	font-size: 15px;
+	color: #ddd;
+
+	margin-top: 10px;
+}
+
+#contact {
+	width: 259px;
+	height: 50px;
+
+	margin: 2% auto;
+	display: none;
+
+	transition: 1s;
+	animation-duration: 1s;
+}
+
+#contact i {
+	position: relative;
+	color: white;
+	font-size: 70px;
+	text-align: center;
+	padding: 10px;
+
+	cursor: pointer;
+}
+
+.fa-discord {
+	top: 4px;
+}
+
+#alert {
+	width: 300px;
+	height: 50px;
+
+	margin: 15% auto 0;
+	bottom: 100px;
+
+	text-align: center;
+	transition: 1s;
+
+	animation-duration: 1s;
+
+	display: none;
+}
+
+#alert .content {
+	font-family: 'Roboto Mono';
+	color: white;
 }

@@ -44,13 +44,12 @@ header {
 }
 
 #contact {
-	width: 259px;
-	height: 50px;
-
-	margin: 2% auto;
+	width: 90%;
+	text-align: center;
 	display: none;
 
-	transition: 1s;
+	margin: 0 auto;
+
 	animation-duration: 1s;
 }
 
@@ -75,7 +74,6 @@ header {
 	margin: 15% auto 0;
 	bottom: 100px;
 
-	text-align: center;
 	transition: 1s;
 
 	animation-duration: 1s;
@@ -86,4 +84,36 @@ header {
 #alert .content {
 	font-family: 'Roboto Mono';
 	color: white;
+}
+
+@media(max-width: 990px) {
+	#header-banner-name {
+		width: 400px;
+		font-size: 90px;
+	}
+	#header-banner-aliases {
+		font-size: 45px;
+	}
+	#contact {
+		width: 99%;
+		position: absolute;
+		bottom: 2%;
+		margin: 0 auto 0;
+	}
+	#contact i {
+		font-size: 170px;
+	}
+
+	#contact i:nth-child(2) {
+		padding-left: 50px;
+		padding-right: 50px;
+	}
+
+	#alert {
+		margin: 20% auto 0;
+	}
+
+	#alert .content {
+		font-size: 20px;
+	}
 }

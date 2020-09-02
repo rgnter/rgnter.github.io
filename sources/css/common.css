@@ -70,15 +70,12 @@ header {
 #alert {
 	width: 300px;
 	height: 50px;
-
 	margin: 15% auto 0;
 	bottom: 100px;
-
 	transition: 1s;
-
 	animation-duration: 1s;
-
 	display: none;
+	text-align: center;
 }
 
 #alert .content {

@@ -1,0 +1,28 @@
+[20:40:10] [Server thread/ERROR]: Could not pass event PlayerCommandPreprocessEvent to Hub v0.1
+org.bukkit.event.EventException: null
+	at org.bukkit.plugin.java.JavaPluginLoader$1.execute(JavaPluginLoader.java:306) ~[server.jar:git-Spigot-dcd1643-e60fc34]
+	at org.bukkit.plugin.RegisteredListener.callEvent(RegisteredListener.java:62) ~[server.jar:git-Spigot-dcd1643-e60fc34]
+	at org.bukkit.plugin.SimplePluginManager.fireEvent(SimplePluginManager.java:500) [server.jar:git-Spigot-dcd1643-e60fc34]
+	at org.bukkit.plugin.SimplePluginManager.callEvent(SimplePluginManager.java:485) [server.jar:git-Spigot-dcd1643-e60fc34]
+	at net.minecraft.server.v1_12_R1.PlayerConnection.handleCommand(PlayerConnection.java:1391) [server.jar:git-Spigot-dcd1643-e60fc34]
+	at net.minecraft.server.v1_12_R1.PlayerConnection.a(PlayerConnection.java:1234) [server.jar:git-Spigot-dcd1643-e60fc34]
+	at net.minecraft.server.v1_12_R1.PacketPlayInChat.a(PacketPlayInChat.java:45) [server.jar:git-Spigot-dcd1643-e60fc34]
+	at net.minecraft.server.v1_12_R1.PacketPlayInChat.a(PacketPlayInChat.java:1) [server.jar:git-Spigot-dcd1643-e60fc34]
+	at net.minecraft.server.v1_12_R1.PlayerConnectionUtils$1.run(SourceFile:13) [server.jar:git-Spigot-dcd1643-e60fc34]
+	at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:511) [?:1.8.0_265]
+	at java.util.concurrent.FutureTask.run(FutureTask.java:266) [?:1.8.0_265]
+	at net.minecraft.server.v1_12_R1.SystemUtils.a(SourceFile:46) [server.jar:git-Spigot-dcd1643-e60fc34]
+	at net.minecraft.server.v1_12_R1.MinecraftServer.D(MinecraftServer.java:748) [server.jar:git-Spigot-dcd1643-e60fc34]
+	at net.minecraft.server.v1_12_R1.DedicatedServer.D(DedicatedServer.java:406) [server.jar:git-Spigot-dcd1643-e60fc34]
+	at net.minecraft.server.v1_12_R1.MinecraftServer.C(MinecraftServer.java:679) [server.jar:git-Spigot-dcd1643-e60fc34]
+	at net.minecraft.server.v1_12_R1.MinecraftServer.run(MinecraftServer.java:577) [server.jar:git-Spigot-dcd1643-e60fc34]
+	at java.lang.Thread.run(Thread.java:748) [?:1.8.0_265]
+Caused by: java.lang.ClassCastException: org.bukkit.craftbukkit.v1_12_R1.CraftOfflinePlayer cannot be cast to org.bukkit.entity.Player
+	at LobbyGestry.core.account.PlayerManager.loadOffPlayer(PlayerManager.java:96) ~[?:?]
+	at LobbyGestry.core.playerstats.commands.stats.Execute(stats.java:43) ~[?:?]
+	at LobbyGestry.core.command.CommandCenter.OnPlayerCommandPreprocess(CommandCenter.java:64) ~[?:?]
+	at sun.reflect.GeneratedMethodAccessor41.invoke(Unknown Source) ~[?:?]
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) ~[?:1.8.0_265]
+	at java.lang.reflect.Method.invoke(Method.java:498) ~[?:1.8.0_265]
+	at org.bukkit.plugin.java.JavaPluginLoader$1.execute(JavaPluginLoader.java:302) ~[server.jar:git-Spigot-dcd1643-e60fc34]
+	... 16 more

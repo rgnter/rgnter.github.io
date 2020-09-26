@@ -11,6 +11,8 @@
 body {
 	background: #111;
 	background: url('../img/noise.png');
+
+	transition: 500ms;
 }
 
 header {

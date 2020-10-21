@@ -54,6 +54,9 @@ header {
 
 	animation-duration: 1s;
 }
+#contact a {
+	text-decoration: none;
+}
 
 #contact i {
 	position: relative;

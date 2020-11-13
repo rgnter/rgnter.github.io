@@ -1,9 +1,10 @@
 let count = 0;
+let pressed = [];
 
 $( document ).ready(function() {
   	var clipboard = new ClipboardJS('.discord-id-copy');
 
-
+  	pressed = new Array();
 	$("#header-banner-name").click(function() {
 		count++;
 		if(count >= 10) {
@@ -11,6 +12,12 @@ $( document ).ready(function() {
 
 			$("#header-banner-name").html("wener");
 			$("#header-banner-aliases").html("(Le Wenęůr, MrWener)");
+		}
+	});
+	$("body").keypress(function(event) {
+		pressed.push(event.which);
+		if(pressed.join('') == "102114101110100108121") {
+			$("body").css({"background": "url('sources/img/noise.png')", "background-blend-mode": "screen", "background-color": "#101500"});
 		}
 	});
 });

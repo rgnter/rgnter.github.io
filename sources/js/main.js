@@ -31,7 +31,7 @@ function showAlert(title) {
 	$('#alert').css({'display': 'block', 'animation-name': 'bounceIn'});
 	$('#alert').find('.content').html(title);
 
-	setTimeout(hideAlert, 2000);
+	setTimeout(hideAlert, 4000);
 }
 
 function hideAlert() {

@@ -1,16 +1,16 @@
 ::-moz-selection { /* Code for Firefox */
   color: black;
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(10, 10, 10, 0.9);
 }
 
 ::selection {
   color: black;
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(10, 10, 10, 0.9);
 }
 
 body {
 	background: #111;
-	background: url('../img/noise.png');
+	/*background: url('../img/noise.png');*/
 
 	transition: 500ms;
 }
@@ -22,13 +22,25 @@ header {
 	padding: 0px;
 }
 
+#heading {
+	width: 400px;
+	margin: 10% auto;
+
+	color: white;
+	font-family: 'Roboto Mono';
+	font-weight: 900;
+}
+
 .banner-text {
 	font-size: 30px;
 	font-family: 'Roboto Mono';
 	font-weight: 900;
 	color: white;
-	text-align: center;
+
+	width: 407px;
+    margin: 0 auto;
 }
+
 #header-banner-name {
 	margin: 20% auto 0;
 	padding: 5px;
@@ -60,12 +72,17 @@ header {
 
 #contact i {
 	position: relative;
-	color: white;
+	color: #aaa;
 	font-size: 70px;
 	text-align: center;
 	padding: 10px;
 
 	cursor: pointer;
+	transition: 300ms;
+}
+
+#contact i:hover {
+	color: #ddd;
 }
 
 .fa-discord {
@@ -73,14 +90,20 @@ header {
 }
 
 #alert {
-	width: 300px;
+	position: relative;
+	width: 70%;
+	padding: 100px;
 	height: 50px;
-	margin: 15% auto 0;
-	bottom: 100px;
+
+	bottom: 2%;
+	margin: 0 auto;
+
 	transition: 1s;
 	animation-duration: 1s;
 	display: none;
 	text-align: center;
+
+	overflow: hidden;
 }
 
 #alert .content {
@@ -112,10 +135,10 @@ header {
 	}
 
 	#alert {
-		margin: 20% auto 0;
+		bottom: 20%;
 	}
 
 	#alert .content {
-		font-size: 20px;
+		font-size: 40px;
 	}
 }

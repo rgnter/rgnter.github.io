@@ -41,7 +41,7 @@ function hideAlert() {
 
 $(window).on('load', function(){
 	setTimeout(function() {
-		$("header").fadeIn(200);
+		$("header").fadeIn(500);
 		$("header").removeClass("hidden");
 	}, 1000); //wait for page load PLUS two seconds.
 });

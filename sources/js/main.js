@@ -23,7 +23,7 @@ $( document ).ready(function() {
 });
 
 
-function showContact() {
+function show_contact() {
 	$('#contact').css({'display': 'block','animation-name': 'pulse'});
 }
 
@@ -38,3 +38,10 @@ function hideAlert() {
 	$('#alert').css({'animation-name': 'bounceOut'});
 	setTimeout(function() {$('#alert').css({'display': ''});}, 900);
 }
+
+$(window).on('load', function(){
+	setTimeout(function() {
+		$("header").fadeIn(200);
+		$("header").removeClass("hidden");
+	}, 500); //wait for page load PLUS two seconds.
+});

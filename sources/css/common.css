@@ -22,6 +22,10 @@ header {
 	padding: 0px;
 }
 
+.hidden {
+	display: none;
+}
+
 #heading {
 	width: 400px;
 	margin: 10% auto;
@@ -65,6 +69,7 @@ header {
 	margin: 0 auto;
 
 	animation-duration: 1s;
+	transition: 500ms;
 }
 #contact a {
 	text-decoration: none;

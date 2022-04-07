@@ -43,5 +43,5 @@ $(window).on('load', function(){
 	setTimeout(function() {
 		$("header").fadeIn(200);
 		$("header").removeClass("hidden");
-	}, 500); //wait for page load PLUS two seconds.
+	}, 1000); //wait for page load PLUS two seconds.
 });

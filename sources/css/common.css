@@ -33,6 +33,19 @@ header {
 	font-weight: 900;
 }
 
+#heading p {
+	margin: 0;
+}
+
+#heading .realname {
+	font-weight: 300;
+}
+
+#heading .description {
+	font-weight: 300;
+	text-align: center;
+}
+
 .banner-text {
 	font-size: 30px;
 	font-family: 'Roboto Mono';

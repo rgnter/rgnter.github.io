@@ -1,11 +1,44 @@
 [
   {
-    "id": "r00_cbt002",
-    "name": "Female body 2",
+    "id": "r02_cbt010_00_b",
+    "name": "Male Body 10",
     "material_id": "alicia",
-    "mesh": "models/mesh/test.obj",
+    "mesh": "models/mesh/r02/cbt010_00_b.obj",
     "textures": {
-      "albedo": "models/texture/r00_cbt002_00_dif.png",
+      "albedo": "models/texture/r02/r02_cbt010_00_dif.png",
+      "spec": "",
+      "sss": ""
+    }
+  },
+  {
+    "id": "r02_cfe000_00_d",
+    "name": "Male Head 0",
+    "material_id": "alicia",
+    "mesh": "models/mesh/r02/cfe000_00_d.obj",
+    "textures": {
+      "albedo": "models/texture/r02/r02_cee007_00_a_dif.png",
+      "spec": "",
+      "sss": ""
+    }
+  },
+  {
+    "id": "r02_cee000_00_d",
+    "name": "Male Face 0",
+    "material_id": "alicia",
+    "mesh": "models/mesh/r02/cee000_00_d.obj",
+    "textures": {
+      "albedo": "models/texture/r02/r02_cee007_00_a_dif.png",
+      "spec": "",
+      "sss": ""
+    }
+  },
+  {
+    "id": "r02_cha003_00_a",
+    "name": "Male Hair 10",
+    "material_id": "alicia",
+    "mesh": "models/mesh/r02/cha003_00_a.obj",
+    "textures": {
+      "albedo": "models/texture/r02/r02_cha003_00_dif.png",
       "spec": "",
       "sss": ""
     }

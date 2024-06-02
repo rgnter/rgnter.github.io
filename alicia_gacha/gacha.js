@@ -1,55 +1,5 @@
 import {OBJFile} from "./OBJFile.js";
 
-const model = {
-  vertices: [
-    // Front face
-    -1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 1.0, 1.0, 1.0, -1.0, 1.0, 1.0,
-    // Back face
-    -1.0, -1.0, -1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0, -1.0, -1.0,
-    // Top face
-    -1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, -1.0,
-    // Bottom face
-    -1.0, -1.0, -1.0, 1.0, -1.0, -1.0, 1.0, -1.0, 1.0, -1.0, -1.0, 1.0,
-    // Right face
-    1.0, -1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 1.0, 1.0, 1.0, -1.0, 1.0,
-    // Left face
-    -1.0, -1.0, -1.0, -1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0, -1.0,
-  ],
-  indices: [
-    0, 1, 2, 0, 2, 3, // front
-    4,
-    5,
-    6,
-    4,
-    6,
-    7, // back
-    8,
-    9,
-    10,
-    8,
-    10,
-    11, // top
-    12,
-    13,
-    14,
-    12,
-    14,
-    15, // bottom
-    16,
-    17,
-    18,
-    16,
-    18,
-    19, // right
-    20,
-    21,
-    22,
-    20,
-    22,
-    23, // left
-  ]
-};
-
 const materialRegistry = new Map()
 const modelRegistry = new Map()
 
@@ -70,7 +20,7 @@ async function prepareShaderResources()
   });
 }
 
-async function prepareModelResources()
+async function prepareModelResources(gl)
 {
   const indexPromise = fetch(`models/index.json`)
     .then(res => res.json());
@@ -78,37 +28,145 @@ async function prepareModelResources()
   const promises = []
   const index = await indexPromise;
   index.forEach(model => {
+
     modelRegistry.set(model.id, {
       "name": model.name,
       "materialId": model.material_id,
       "vertices": [],
-      "indices": []
+      "indices": [],
+      "textures": {
+        "abledo": 0,
+        "spec": 0,
+        "sss": 0
+      }
     });
+
+    const ref = modelRegistry.get(model.id);
+
+    // Load the mesh
     promises.push(fetch(model.mesh)
       .then(res => res.text())
       .then(text => new OBJFile(text))
       .then(obj => obj.parse())
       .then(obj => {
         let mesh = obj.models[0];
-        let ref = modelRegistry.get(model.id);
         console.log(mesh)
 
-        // Get verticies
-        mesh.vertices.forEach(vertex => {
-          ref.vertices.push(vertex.x);
-          ref.vertices.push(vertex.y);
-          ref.vertices.push(vertex.z);
-        });
+        const vertices = [];
+        const indices = [];
 
-        // Get Vertex indices
-        mesh.faces.forEach(face => {
-          face.vertices.forEach(vertex => {
-            ref.indices.push(vertex.vertexIndex - 1);
+        // Fill verticies
+        mesh.vertices.forEach(vertex => {
+          vertices.push({
+            x: vertex.x,
+            y: vertex.y,
+            z: vertex.z,
+            u: 1.0,
+            v: 1.0
           });
         });
-        console.log(ref.vertices)
-        console.log(ref.indices)
+
+        // Process faces to generate index array,
+        // and fill in UV coords for verticies.
+        mesh.faces.forEach(face => {
+          face.vertices.forEach(vertex => {
+            // Index
+            indices.push(vertex.vertexIndex - 1);
+
+            // UV
+            const actualVertex = vertices[vertex.vertexIndex - 1];
+            const uvCoords = mesh.textureCoords[vertex.textureCoordsIndex - 1];
+            actualVertex.u = uvCoords.u;
+            actualVertex.v = uvCoords.v;
+          });
+        });
+
+        // Lay out the actual vertex data in a tightly-packed stream.
+        const verticesStream = [];
+        for (let idx = 0; idx < vertices.length; idx++)
+        {
+          const vertex = vertices[idx];
+          // Vertex
+          verticesStream.push(vertex.x);
+          verticesStream.push(vertex.y);
+          verticesStream.push(vertex.z);
+          // UV
+          verticesStream.push(vertex.u);
+          verticesStream.push(vertex.v);
+        }
+
+        ref.vertices = new Float32Array(verticesStream);
+        // Lay out the actual index data.
+        ref.indices = new Int16Array(indices);
+
+        console.log(ref.vertices);
+        console.log(ref.indices);
       }));
+
+    // Load the texture.
+    const isPowerOf2 = (value) => {
+      return (value & (value - 1)) === 0;
+    };
+
+    const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+
+    // Because images have to be downloaded over the internet
+    // they might take a moment until they are ready.
+    // Until then put a single pixel in the texture so we can
+    // use it immediately. When the image has finished downloading
+    // we'll update the texture with the contents of the image.
+    const level = 0;
+    const internalFormat = gl.RGBA;
+    const width = 1;
+    const height = 1;
+    const border = 0;
+    const srcFormat = gl.RGBA;
+    const srcType = gl.UNSIGNED_BYTE;
+    const pixel = new Uint8Array([0, 0, 255, 255]); // opaque blue
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      level,
+      internalFormat,
+      width,
+      height,
+      border,
+      srcFormat,
+      srcType,
+      pixel,
+    );
+
+    const image = new Image();
+    image.onload = () => {
+      gl.bindTexture(gl.TEXTURE_2D, texture);
+      gl.texImage2D(
+        gl.TEXTURE_2D,
+        level,
+        internalFormat,
+        srcFormat,
+        srcType,
+        image,
+      );
+
+      // WebGL1 has different requirements for power of 2 images
+      // vs. non power of 2 images so check if the image is a
+      // power of 2 in both dimensions.
+      if (isPowerOf2(image.width) && isPowerOf2(image.height)) {
+        // Yes, it's a power of 2. Generate mips.
+        gl.generateMipmap(gl.TEXTURE_2D);
+      } else {
+        // No, it's not a power of 2. Turn off mips and set
+        // wrapping to clamp to edge
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      }
+    };
+
+    image.src = model.textures.albedo;
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+    ref.textures.albedo = texture;
+
   });
 
   await Promise.all(promises);
@@ -161,6 +219,7 @@ function prepareShaders(gl, material)
     uniformLocation: {
       projectionMatrix: gl.getUniformLocation(shaderProgram, "projectionMatrix"),
       modelViewMatrix: gl.getUniformLocation(shaderProgram, "modelViewMatrix"),
+      albedoSampler: gl.getUniformLocation(shaderProgram, "albedoSampler")
     }
   };
 }
@@ -173,28 +232,28 @@ function prepareBuffers(gl, model)
   gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
   gl.bufferData(
     gl.ARRAY_BUFFER,
-    new Float32Array(model.vertices),
+    model.vertices,
     gl.STATIC_DRAW);
   gl.vertexAttribPointer(
     0,
     3, gl.FLOAT,
     false,
-    0,
+    20,
     0);
-  /*gl.vertexAttribPointer(
+  gl.vertexAttribPointer(
     1,
     2, gl.FLOAT,
     false,
-    0,
-    12);*/
+    20,
+    12);
   gl.enableVertexAttribArray(0);
-  /*gl.enableVertexAttribArray(1);*/
+  gl.enableVertexAttribArray(1);
 
   const ebo = gl.createBuffer();
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ebo);
   gl.bufferData(
     gl.ELEMENT_ARRAY_BUFFER,
-    new Uint16Array(model.indices),
+    model.indices,
     gl.STATIC_DRAW);
 
   return {
@@ -204,9 +263,37 @@ function prepareBuffers(gl, model)
   }
 }
 
+
+
 async function main() {
   const canvas = document.querySelector(
     "#app");
+
+  let drag = {beginX: 0, currentX: 0, deltaX: 0, active: false};
+
+  canvas.addEventListener('mousedown', (event) => {
+    drag.active = true;
+    drag.x = event.pageX;
+  });
+  canvas.addEventListener('mouseup', (event) => {
+    drag.active = false
+    drag.deltaX = 0;
+    drag.beginX = 0;
+    drag.currentX = 0;
+  });
+
+  canvas.addEventListener('mousemove', (event) => {
+    if (!drag.active)
+    {
+      return;
+    }
+
+    drag.currentX = event.pageX;
+    drag.deltaX = (drag.currentX - drag.beginX) * -1;
+    drag.beginX = drag.currentX;
+    console.log(drag.deltaX)
+  });
+
   const gl = canvas.getContext("webgl2");
 
   if (gl === null) {
@@ -235,12 +322,35 @@ async function main() {
     [1, 0, 0]);
 
   await prepareShaderResources();
-  await prepareModelResources();
+  await prepareModelResources(gl);
 
-  const model = modelRegistry.get("r00_cbt002");
-  console.log(model.indices.length)
-  const shaders = prepareShaders(gl, materialRegistry.get("alicia"));
-  const buffers = prepareBuffers(gl, model);
+  const scene = {
+    objects: [
+      {
+        model: modelRegistry.get("r02_cbt010_00_b"),
+        buffers: null,
+      },
+      {
+        model: modelRegistry.get("r02_cha003_00_a"),
+        buffers: null,
+      },
+      {
+        model: modelRegistry.get("r02_cfe000_00_d"),
+        buffers: null,
+      },
+      {
+        model: modelRegistry.get("r02_cee000_00_d"),
+        buffers: null,
+      }
+    ]
+  };
+
+  const shaders = prepareShaders(
+    gl, materialRegistry.get("alicia"));
+
+  scene.objects.forEach(object => {
+    object.buffers = prepareBuffers(gl, object.model);
+  });
 
   gl.useProgram(shaders.program);
 
@@ -248,7 +358,7 @@ async function main() {
   let last_time = 0;
   let delta_time = 0;
 
-  gl.clearColor(0.0, 0.0, 0.0, 1.0);
+  gl.clearColor(151.0 / 255.0, 205.0 / 255.0, 116.0 / 255.0, 1);
   gl.clearDepth(1.0);
   gl.enable(gl.DEPTH_TEST);
   gl.depthFunc(gl.LEQUAL);
@@ -261,29 +371,39 @@ async function main() {
     mat4.rotate(
       modelViewMatrix,
       modelViewMatrix,
-      Math.PI / 365,
+      (Math.PI / 365),
       [0, 1, 0]);
 
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    gl.useProgram(shaders.program);
-    gl.uniformMatrix4fv(
-      shaders.uniformLocation.projectionMatrix,
-      false,
-      projectionMatrix,
-    );
-    gl.uniformMatrix4fv(
-      shaders.uniformLocation.modelViewMatrix,
-      false,
-      modelViewMatrix,
-    );
+    // Render scene objects
+    scene.objects.forEach(object => {
+      const model = object.model;
+      const buffers = object.buffers;
 
-    gl.bindVertexArray(buffers.vao);
-    gl.drawElements(
-      gl.TRIANGLES,
-      model.indices.length,
-      gl.UNSIGNED_SHORT,
-      0);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, model.textures.albedo);
+      gl.uniform1i(shaders.uniformLocation.albedoSampler, 0);
+
+      gl.useProgram(shaders.program);
+      gl.uniformMatrix4fv(
+        shaders.uniformLocation.projectionMatrix,
+        false,
+        projectionMatrix,
+      );
+      gl.uniformMatrix4fv(
+        shaders.uniformLocation.modelViewMatrix,
+        false,
+        modelViewMatrix,
+      );
+
+      gl.bindVertexArray(buffers.vao);
+      gl.drawElements(
+        gl.TRIANGLES,
+        model.indices.length,
+        gl.UNSIGNED_SHORT,
+        0);
+    });
 
     requestAnimationFrame(render);
   };

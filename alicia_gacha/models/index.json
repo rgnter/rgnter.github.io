@@ -1,0 +1,13 @@
+[
+  {
+    "id": "r00_cbt002",
+    "name": "Female body 2",
+    "material_id": "alicia",
+    "mesh": "models/mesh/test.obj",
+    "textures": {
+      "albedo": "models/texture/r00_cbt002_00_dif.png",
+      "spec": "",
+      "sss": ""
+    }
+  }
+]

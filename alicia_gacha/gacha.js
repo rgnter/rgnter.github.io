@@ -1,32 +1,6 @@
+import {OBJFile} from "./OBJFile.js";
 
-
-const vsSource = `
-    attribute vec4 position;
-    attribute vec2 uv;
-    
-    uniform mat4 modelViewMatrix;
-    uniform mat4 projectionMatrix;
-    
-    varying highp vec2 uvCoordinates;
-    
-    void main() {
-      uvCoordinates = uv;
-      gl_Position = projectionMatrix * modelViewMatrix * position;
-    }
-  `;
-
-const fsSource = `
-    varying highp vec2 uvCoordinates;
-    
-    uniform sampler2D albedoSampler;
-    uniform sampler2D specSampler;
-    
-    void main() {
-      gl_FragColor = vec4(1.0 * uvCoordinates.x, 1.0 * uvCoordinates.y, 1.0, 1.0);texture2D(albedoSampler, uvCoordinates);
-    }
-  `;
-
-const model= {
+const model = {
   vertices: [
     // Front face
     -1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 1.0, 1.0, 1.0, -1.0, 1.0, 1.0,
@@ -42,12 +16,7 @@ const model= {
     -1.0, -1.0, -1.0, -1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0, -1.0,
   ],
   indices: [
-    0,
-    1,
-    2,
-    0,
-    2,
-    3, // front
+    0, 1, 2, 0, 2, 3, // front
     4,
     5,
     6,
@@ -81,9 +50,71 @@ const model= {
   ]
 };
 
-main();
+const materialRegistry = new Map()
+const modelRegistry = new Map()
 
-function prepareShaders(gl)
+await main();
+
+async function prepareShaderResources()
+{
+  const vertexShaderPromise = fetch(`shaders/alicia-vertex.glsl`)
+    .then(res => res.text());
+  const fragmentShaderPromise = fetch(`shaders/alicia-fragment.glsl`)
+    .then(res => res.text());
+
+  const [vertexShader, fragmentShader] = await Promise.all(
+    [vertexShaderPromise, fragmentShaderPromise]);
+  materialRegistry.set("alicia", {
+    "vertexShader": vertexShader,
+    "fragmentShader": fragmentShader
+  });
+}
+
+async function prepareModelResources()
+{
+  const indexPromise = fetch(`models/index.json`)
+    .then(res => res.json());
+
+  const promises = []
+  const index = await indexPromise;
+  index.forEach(model => {
+    modelRegistry.set(model.id, {
+      "name": model.name,
+      "materialId": model.material_id,
+      "vertices": [],
+      "indices": []
+    });
+    promises.push(fetch(model.mesh)
+      .then(res => res.text())
+      .then(text => new OBJFile(text))
+      .then(obj => obj.parse())
+      .then(obj => {
+        let mesh = obj.models[0];
+        let ref = modelRegistry.get(model.id);
+        console.log(mesh)
+
+        // Get verticies
+        mesh.vertices.forEach(vertex => {
+          ref.vertices.push(vertex.x);
+          ref.vertices.push(vertex.y);
+          ref.vertices.push(vertex.z);
+        });
+
+        // Get Vertex indices
+        mesh.faces.forEach(face => {
+          face.vertices.forEach(vertex => {
+            ref.indices.push(vertex.vertexIndex - 1);
+          });
+        });
+        console.log(ref.vertices)
+        console.log(ref.indices)
+      }));
+  });
+
+  await Promise.all(promises);
+}
+
+function prepareShaders(gl, material)
 {
   const compileShader = (gl, type, source) => {
     const shader = gl.createShader(type);
@@ -103,8 +134,8 @@ function prepareShaders(gl)
   };
 
   const shaders = {
-    vertexShader: compileShader(gl, gl.VERTEX_SHADER, vsSource),
-    fragmentShader: compileShader(gl, gl.FRAGMENT_SHADER, fsSource)
+    vertexShader: compileShader(gl, gl.VERTEX_SHADER, material.vertexShader),
+    fragmentShader: compileShader(gl, gl.FRAGMENT_SHADER, material.fragmentShader)
   };
 
   const shaderProgram = gl.createProgram();
@@ -138,7 +169,6 @@ function prepareBuffers(gl, model)
 {
   const vao = gl.createVertexArray();
   gl.bindVertexArray(vao);
-
   const vbo = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
   gl.bufferData(
@@ -151,14 +181,14 @@ function prepareBuffers(gl, model)
     false,
     0,
     0);
-  gl.vertexAttribPointer(
+  /*gl.vertexAttribPointer(
     1,
     2, gl.FLOAT,
     false,
     0,
-    12);
+    12);*/
   gl.enableVertexAttribArray(0);
-  gl.enableVertexAttribArray(1);
+  /*gl.enableVertexAttribArray(1);*/
 
   const ebo = gl.createBuffer();
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ebo);
@@ -174,7 +204,7 @@ function prepareBuffers(gl, model)
   }
 }
 
-function main() {
+async function main() {
   const canvas = document.querySelector(
     "#app");
   const gl = canvas.getContext("webgl2");
@@ -197,10 +227,19 @@ function main() {
   mat4.translate(
     modelViewMatrix,
     modelViewMatrix,
-    [-0.0, 0.0, -6.0],
-  );
+    [-0.0, -1.0, -4.0]);
+  mat4.rotate(
+    modelViewMatrix,
+    modelViewMatrix,
+    Math.PI,
+    [1, 0, 0]);
 
-  const shaders = prepareShaders(gl);
+  await prepareShaderResources();
+  await prepareModelResources();
+
+  const model = modelRegistry.get("r00_cbt002");
+  console.log(model.indices.length)
+  const shaders = prepareShaders(gl, materialRegistry.get("alicia"));
   const buffers = prepareBuffers(gl, model);
 
   gl.useProgram(shaders.program);
@@ -219,7 +258,11 @@ function main() {
     time += delta_time;
     last_time = current_time;
 
-    mat4.rotate(modelViewMatrix, modelViewMatrix, Math.PI / 365, [1, 1, 1]);
+    mat4.rotate(
+      modelViewMatrix,
+      modelViewMatrix,
+      Math.PI / 365,
+      [0, 1, 0]);
 
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
@@ -238,7 +281,7 @@ function main() {
     gl.bindVertexArray(buffers.vao);
     gl.drawElements(
       gl.TRIANGLES,
-      36,
+      model.indices.length,
       gl.UNSIGNED_SHORT,
       0);
 

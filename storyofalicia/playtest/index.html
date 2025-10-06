@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Story of Alicia Login</title>
+  <title>Story of Alicia testing grounds</title>
   <style>
     body {
       display: flex;
@@ -32,6 +32,10 @@
       margin-bottom: 10px;
     }
 
+    a {
+      color: #5e9cff;
+    }
+
     p {
       color: #b0b0b0;
       font-size: 14px;
@@ -42,8 +46,9 @@
     input {
       padding: 12px;
       margin-top: 10px;
+      margin-bottom: 20px; /* adds vertical space */
       font-size: 16px;
-      width: 100%;
+      width: calc(100% - 20px); /* adds horizontal padding space */
       border: 1px solid #333;
       border-radius: 8px;
       background-color: #2a2a2d;
@@ -57,7 +62,6 @@
     }
 
     button {
-      margin-top: 20px;
       padding: 12px 24px;
       font-size: 16px;
       background-color: #5e9cff;
@@ -76,25 +80,32 @@
 </head>
 <body>
   <div class="container">
-    <h2>Login</h2>
-    <p>Login to <strong>Story of Alicia</strong> testing grounds.</p>
-    <p>Make sure you have the game installed on your computer.</p>
+    <h2>Enter the testing grounds</h2>
+    <p>The testing grounds are only available to selected group of people. To have a chance to participate in the testing, join our <a href="https://discord.gg/storyofalicia" target="_blank">Discord server</a> and become a booster.</p>
+    <p>Download the launcher installer from <a href="https://example.com/download" target="_blank">from the Proton Drive mirror</a> or <a href="https://example.com/alternative" target="_blank">the Google Drive mirror</a>.</p>
 
     <input type="text" id="loginName" placeholder="Login name" />
-    <br />
-    <button onclick="login()">Login</button>
+    <button onclick="login()">Launch</button>
   </div>
 
   <script>
-    function login() {
-      const username = document.getElementById('loginName').value.trim();
-      if (!username) {
-        alert('Please enter a login name.');
-        return;
-      }
-      const url = `soa://4/?username=${encodeURIComponent(username)}&token=races`;
-      window.location.href = url;
+  function login() {
+    const username = document.getElementById('loginName').value.trim();
+    if (!username) {
+      alert('Please enter a login name.');
+      return;
     }
+
+    const uri = `soa://4/?username=${encodeURIComponent(username)}&token=races`;
+    const start = Date.now();
+    const timeout = 15000; // milliseconds
+
+    window.location.href = uri;
+
+    setTimeout(() => {
+      alert("If the game did not launch. Please make sure the game is installed.");
+    }, timeout);
+  }
   </script>
 </body>
 </html>

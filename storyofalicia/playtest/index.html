@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Story of Alicia Login</title>
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      font-family: "Segoe UI", sans-serif;
+      background-color: #0d0d0f;
+      color: #e0e0e0;
+      margin: 0;
+    }
+
+    .container {
+      background: #1a1a1d;
+      padding: 30px 40px;
+      border-radius: 16px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.6);
+      text-align: center;
+      max-width: 400px;
+      width: 90%;
+    }
+
+    h2 {
+      color: #ffffff;
+      margin-bottom: 10px;
+    }
+
+    p {
+      color: #b0b0b0;
+      font-size: 14px;
+      margin-bottom: 25px;
+      line-height: 1.4;
+    }
+
+    input {
+      padding: 12px;
+      margin-top: 10px;
+      font-size: 16px;
+      width: 100%;
+      border: 1px solid #333;
+      border-radius: 8px;
+      background-color: #2a2a2d;
+      color: #ffffff;
+      outline: none;
+      transition: border-color 0.2s ease;
+    }
+
+    input:focus {
+      border-color: #5e9cff;
+    }
+
+    button {
+      margin-top: 20px;
+      padding: 12px 24px;
+      font-size: 16px;
+      background-color: #5e9cff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      width: 100%;
+      transition: background-color 0.2s ease;
+    }
+
+    button:hover {
+      background-color: #3d7ee8;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Login</h2>
+    <p>Login to <strong>Story of Alicia</strong> testing grounds.</p>
+    <p>Make sure you have the game installed on your computer.</p>
+
+    <input type="text" id="loginName" placeholder="Login name" />
+    <br />
+    <button onclick="login()">Login</button>
+  </div>
+
+  <script>
+    function login() {
+      const username = document.getElementById('loginName').value.trim();
+      if (!username) {
+        alert('Please enter a login name.');
+        return;
+      }
+      const url = `soa://4/?username=${encodeURIComponent(username)}&token=races`;
+      window.location.href = url;
+    }
+  </script>
+</body>
+</html>

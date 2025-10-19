@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
+  <link rel="stylesheet" href="../common.css">
+
+  <title>Story of Alicia – Register</title>
+</head>
+<body>
+  <div class="container">
+    <div>
+      <h2>Register for the Testing Grounds</h2>
+      <p>Register for the official <strong>Story of Alicia</strong> play test.</p>
+    </div>
+
+    <div>
+      <input type="text" id="regName" placeholder="Your name" autocomplete="name" />
+      <input type="password" id="regPassword" placeholder="Password" autocomplete="new-password" />
+      <input type="password" id="regConfirm" placeholder="Confirm password" autocomplete="new-password" />
+      <button onclick="register()">Register</button>
+    </div>
+
+    <div class="footer-link">
+      <a href="../">Already registered? Go to login.</a>
+    </div>
+  </div>
+
+  <script>
+    async function registerUser(name, email, password) {
+      try {
+        const response = await fetch("https://rgnt.xyz/storyofalicia/playtest/api/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: name, email: email, password: password })
+        });
+
+        if (!response.ok) throw new Error("Failed to register user.");
+
+        const data = await response.json();
+        return data.success || false;
+      } catch (error) {
+        console.error(error);
+        alert("Registration failed. Please try again later.");
+        return false;
+      }
+    }
+
+    async function register() {
+      const name = document.getElementById('regName').value.trim();
+      const email = document.getElementById('regEmail').value.trim();
+      const password = document.getElementById('regPassword').value.trim();
+      const confirm = document.getElementById('regConfirm').value.trim();
+
+      if (!name || !email || !password || !confirm) {
+        alert("Please fill in all fields.");
+        return;
+      }
+
+      if (password !== confirm) {
+        alert("Passwords do not match.");
+        return;
+      }
+
+      // Basic password safety check
+      if (password.length < 6) {
+        alert("Password must be at least 6 characters long.");
+        return;
+      }
+
+      const success = await registerUser(name, email, password);
+      if (success) {
+        alert("Registration successful! You can now log in.");
+        window.location.href = "index.html";
+      } else {
+        alert("Registration failed. Please check your details or try again later.");
+      }
+    }
+  </script>
+</body>
+</html>

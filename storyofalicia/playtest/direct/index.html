@@ -1,0 +1,35 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
+    <link rel="stylesheet" href="../common.css">
+    <title>Story of Alicia – Testing Grounds</title>
+</head>
+<script>
+function handleEnter()
+{
+    const params = new URLSearchParams(document.location.search);
+    const username = params.get("username");
+    const token = parseInt(params.get("token"));
+
+    const uri = `soa://4/?username=${encodeURIComponent(username)}&token=${encodeURIComponent(token)}`;
+    window.location.href = uri;
+
+    setTimeout(() => {
+        alert("If the game did not launch, please ensure it is properly installed.");
+    }, timeout);
+}
+</script>
+<body>
+    <div class="container">
+        <div>
+            <h2>Enter the Testing Grounds</h2>
+            <p id="status">You requested to directly launch the game.</p>
+        </div>
+        <div>
+            <button onclick="handleEnter()">Enter</button>
+        </div>
+    </div>
+</body>
+</html>

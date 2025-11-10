@@ -11,7 +11,7 @@ function handleEnter()
 {
     const params = new URLSearchParams(document.location.search);
     const username = params.get("username");
-    const token = parseInt(params.get("token"));
+    const token = params.get("token");
 
     const uri = `soa://4/?username=${encodeURIComponent(username)}&token=${encodeURIComponent(token)}`;
     window.location.href = uri;

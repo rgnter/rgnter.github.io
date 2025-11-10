@@ -13,6 +13,7 @@ function handleEnter()
     const username = params.get("username");
     const token = params.get("token");
 
+    const timeout = 15000;
     const uri = `soa://4/?username=${encodeURIComponent(username)}&token=${encodeURIComponent(token)}`;
     window.location.href = uri;
 
@@ -24,8 +25,12 @@ function handleEnter()
 <body>
     <div class="container">
         <div>
-            <h2>Enter the Testing Grounds</h2>
+            <h2>Enter the play test</h2>
             <p id="status">You requested to directly launch the game.</p>
+            <p>If you do not have the game installed, download the installer from
+                the <a href="https://drive.proton.me/urls/37WM215Q1R#NlzxAZSg7VFC" target="_blank">Proton Drive</a> or the
+                <a href="https://drive.google.com/file/d/1FMt4C1AmpP_8_1aItuYphvxWec9o2w6N/view" target="_blank">Google Drive</a>.
+            </p>
         </div>
         <div>
             <button onclick="handleEnter()">Enter</button>

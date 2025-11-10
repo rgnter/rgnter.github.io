@@ -12,67 +12,12 @@
 <body>
   <div class="container">
     <div>
-      <h2>Enter the Testing Grounds</h2>
-      <p>Play the official <strong>Story of Alicia</strong> play test.</p>
-      <p>
-        Download the launcher installer from
-        <a href="https://drive.proton.me/urls/37WM215Q1R#NlzxAZSg7VFC" target="_blank">Proton Drive</a> or
-        <a href="https://drive.google.com/file/d/1FMt4C1AmpP_8_1aItuYphvxWec9o2w6N/view" target="_blank">Google Drive</a>.
-      </p>
-    </div>
-
-    <div>
-      <input type="text" id="userName" placeholder="Your name" autocomplete="username" />
-      <input type="password" id="userPassword" placeholder="Your password" autocomplete="current-password" />
-      <button onclick="handleEnter()">Enter</button>
-    </div>
-
-    <div class="footer-link">
-      <a href="register/index.html">Not registered yet? Do so here.</a>
+      <h2>Enter the play test</h2>
+      <p>The play test is currently only available to boosters and contributors for a limited period.</p>
+      <p>Join our <a href="https://discord.gg/storyofalicia">discord server</a>.</p>
     </div>
   </div>
-
   <script>
-    async function authorize(userName, userPassword) {
-      try {
-        const response = await fetch("https://rgnt.xyz/storyofalicia/playtest/api", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username: userName, password: userPassword })
-        });
-
-        if (!response.ok) throw new Error("Failed to authenticate");
-
-        const data = await response.json();
-        return data.token || null;
-      } catch (error) {
-        console.error(error);
-        alert("Authorization failed. Please check your login or try again later.");
-        return null;
-      }
-    }
-
-    async function handleEnter() {
-      const username = document.getElementById('userName').value.trim();
-      const password = document.getElementById('userPassword').value.trim();
-
-      if (!username || !password) {
-        alert('Please enter both your username and password.');
-        return;
-      }
-
-      //const token = await authorize(username, password);
-      //if (!token) return;
-
-      const uri = `soa://4/?username=${encodeURIComponent(username)}&token=${encodeURIComponent(password)}`;
-      const timeout = 15000;
-
-      window.location.href = uri;
-
-      setTimeout(() => {
-        alert("If the game did not launch, please ensure it is properly installed.");
-      }, timeout);
-    }
   </script>
 </body>
 </html>

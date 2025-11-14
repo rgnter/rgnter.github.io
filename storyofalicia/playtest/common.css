@@ -32,7 +32,7 @@
       padding: 40px 50px;
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 15px;
       width: 100%;
       max-width: 420px;
       box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
@@ -89,7 +89,6 @@
       font-size: 1rem;
       cursor: pointer;
       transition: background 0.3s ease, transform 0.2s ease;
-      margin-top: 15px;
       width: 100%;
     }
 

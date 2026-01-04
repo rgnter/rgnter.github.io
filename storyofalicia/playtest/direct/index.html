@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -9,44 +10,99 @@
     <script src="https://kit.fontawesome.com/0ead5b1f35.js" crossorigin="anonymous"></script>
 </head>
 <script>
+
+const LatestGameVersion = "03/01/2026";
+let isUpdateRequired = false;
+
+function setup()
+{
+    performVersionCheck();
+}
+
+function disableEnterAndRequireUpdate()
+{
+  isUpdateRequired = true;
+  enterButton.classList.add("button-primary-inactive");
+  downloadButton.classList.remove("button-secondary");
+  downloadButton.classList.add("button-primary");
+}
+
+function enableEnterWithoutRequiringUpdate()
+{
+  isUpdateRequired = false;
+  enterButton.classList.remove("button-primary-inactive");
+  downloadButton.classList.remove("button-primary");
+  downloadButton.classList.add("button-secondary");
+}
+
+function performVersionCheck()
+{
+  const gameVersion = localStorage.getItem("soa-game-version");
+  
+  if (LatestGameVersion !== gameVersion)
+  {
+    disableEnterAndRequireUpdate();
+      version.textContent = 'A new and required version of the launcher is available for download. ';
+  }
+  else
+  {
+    enableEnterWithoutRequiringUpdate();
+    version.textContent = 'You have the latest version of the launcher. You do not need to download the launcher.';
+  }
+}
+
+function handleDownload()
+{
+  version.textContent = 'A download of the new launcher has started, make sure to install it.';
+
+  setTimeout(() => {
+    enableEnterWithoutRequiringUpdate();
+    localStorage.setItem("soa-game-version", LatestGameVersion);
+  }, 5000);
+}
+
 function handleEnter()
 {
-    const params = new URLSearchParams(document.location.search);
-    const username = params.get("username");
-    const token = params.get("token");
+   if (isUpdateRequired)
+   {
+      alert("Please download and install the latest version of the launcher before entering the playtest.");
+      return;
+   }
 
-    const timeout = 15000;
-    const uri = `soa://4/?username=${encodeURIComponent(username)}&token=${encodeURIComponent(token)}`;
-    window.location.href = uri;
+  const params = new URLSearchParams(document.location.search);
+  const username = params.get("username");
+  const token = params.get("token");
 
-    setTimeout(() => {
-        alert("If the game did not launch, please ensure it is properly installed.");
-    }, timeout);
+  const timeout = 15000;
+  const uri = `soa://4/?username=${encodeURIComponent(username)}&token=${encodeURIComponent(token)}`;
+  window.location.href = uri;
+
+  setTimeout(() => {
+      alert("If the game did not launch, please ensure it is properly installed.");
+  }, timeout);
 }
 </script>
-<body>
+<body onload="performVersionCheck();">
   <div class="bg-glass shadow-xl rounded-lg flex flex-col text-center the-main-thingy fade-in">
       <div>
-          <h2 class="text-light">Enter the play test</h2>
-          <p id="status" class="text-sm leading-snug">
-              You requested to directly launch the game.
-          </p>
-          <p class="text-sm leading-snug">
-              If you do not have the game installed, download the installer from
-              <a href="https://drive.proton.me/urls/37WM215Q1R#NlzxAZSg7VFC" target="_blank">
-                  <i class="fa-solid fa-up-right-from-square"></i> Proton Drive</a>
-              or the
-              <a href="https://drive.google.com/file/d/1NMh_Y8UsTB4HgfR5qVP81ko-ukKSA_00/view" target="_blank">
-                  <i class="fa-solid fa-up-right-from-square"></i> Google Drive</a>.
-          </p>
-          <p class="text-sm leading-snug">
-              By clicking enter you agree to the
-              <a href="https://docs.google.com/document/d/1ywa6xnbH2WDev4K81vOlWsSO-dLJ1nrLpUl4mPXBGpQ">
-                <i class="fa-solid fa-up-right-from-square"></i> play test server's rules</a>.
-          </p>
+          <h2>ENTER THE PLAYTEST</h2>
+          <p>Please follow the following steps to participate in the playtest.</p>
       </div>
       <div>
-          <button class="btn" onclick="handleEnter()">Enter</button>
+        <p class="step">1. Download the launcher</p>
+        <p id="version">Before playing you must download and install the latest version of the game launcher.</p>
+        <a onclick="handleDownload()" id="downloadButton" class="button button-primary" href="https://drive.proton.me/urls/37WM215Q1R#NlzxAZSg7VFC" target="_blank">Download the launcher</a>
+        <p>If the download link does not work for you you can use this <a href="https://drive.google.com/file/d/1NMh_Y8UsTB4HgfR5qVP81ko-ukKSA_00/view" target="_blank"><i class="fa-solid fa-up-right-from-square"></i> Google mirror</a>.</p>
+      </div>
+      <div>
+        <p class="step">2. Launch the game</p>
+          <p>Once the launcher is installed, click the ENTER button below to enter the playtest.</p>
+          <a onclick="handleEnter()" id="enterButton" class="button button-primary">Enter*</a>
+          <p class="text-sm leading-snug">
+              *By clicking ENTER you agree to the
+              <a href="https://docs.google.com/document/d/1ywa6xnbH2WDev4K81vOlWsSO-dLJ1nrLpUl4mPXBGpQ" target="_blank">
+                <i class="fa-solid fa-up-right-from-square"></i> playtest server's rules</a>.
+          </p>
       </div>
   </div>
 </body>

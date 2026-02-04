@@ -33,6 +33,8 @@ body
   color: var(--foreground);
   font-family: "Poppins", sans-serif;
   font-size: 19px;
+
+  overflow: hidden;
 }
 
 h2 
@@ -142,4 +144,23 @@ p
 .invisible 
 {
     display: none;
+}
+
+.footer {
+    display: flex;
+    justify-content: center;
+    gap: 50px;
+    width: 100%;
+    position: absolute;
+    text-align: center;
+    background-color: var(--foreground);
+    color: var(--background);
+    padding: 20px;
+    bottom: 0;
+}
+
+.footer a 
+{
+    color: var(--background);
+    text-decoration: none;
 }

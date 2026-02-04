@@ -11,30 +11,76 @@
 </head>
 <script>
 
+//! Latest game version identifier.
 const LatestGameVersion = "03/01/2026";
+
+//! A flag indicating whether an update is required.
 let isUpdateRequired = false;
+//! A flag indicating whether credentials are supplied.
+let areCredentialsSupplied = false;
+//! A flag indicating whether rules are acknowledged.
+let areRulesAcknowledged = false;
+//! A flag indicating whether issues are acknowledged.
+let areIssuesAcknowledged = false;
 
 function setup()
 {
-    performVersionCheck();
+  performCredentialsCheck();
+  performVersionCheck();
+  validatePlayConditions();
+
+  iunderstandissues.onchange = function() {
+    areIssuesAcknowledged = this.checked;
+    validatePlayConditions();
+  };
+  iunderstandrules.onchange = function() {
+    areRulesAcknowledged = this.checked;
+    validatePlayConditions();
+  };
 }
 
-function disableEnterAndRequireUpdate()
+function validatePlayConditions()
 {
-  isUpdateRequired = true;
+  if (areCredentialsSupplied 
+    && areIssuesAcknowledged 
+    && areRulesAcknowledged 
+    && !isUpdateRequired)
+  {
+    enableEnterVisually();
+  }
+  else
+  {
+    disableEnterVisually();
+  }
+}
+
+function enableEnterVisually()
+{
+  enterButton.classList.remove("button-primary-inactive");
+}
+
+function disableEnterVisually()
+{
   enterButton.classList.add("button-primary-inactive");
+}
+
+function enableRequireUpdateVisually()
+{
+  version.textContent = 'A new and required version of the launcher is available for download. ';
+
   downloadButton.classList.remove("button-secondary");
   downloadButton.classList.add("button-primary");
 }
 
-function enableEnterWithoutRequiringUpdate()
+function disableRequireUpdateVisually()
 {
-  isUpdateRequired = false;
-  enterButton.classList.remove("button-primary-inactive");
+  version.textContent = 'You seem to have the latest version of the launcher. You do not need to download the launcher again.';
+
   downloadButton.classList.remove("button-primary");
   downloadButton.classList.add("button-secondary");
 }
 
+//! 
 function performCredentialsCheck()
 {
   const params = new URLSearchParams(document.location.search);
@@ -44,27 +90,40 @@ function performCredentialsCheck()
   {
     launch.classList.remove("invisible");
     signin.classList.add("invisible");
+    areCredentialsSupplied = true;
+
+    console.log("Credentials are supplied.");
   }
   else
   {
     launch.classList.add("invisible");
     signin.classList.remove("invisible");
+    areCredentialsSupplied = false;
+
+    console.log("Credentials are not supplied.");
   }
 }
 
 function performVersionCheck()
 {
+  // Fetch the game version stored in local storage.
   const gameVersion = localStorage.getItem("soa-game-version");
-  
+
+  console.log(`Current reported version: ${gameVersion}, latest version: ${LatestGameVersion}`);
+
   if (LatestGameVersion !== gameVersion)
   {
-    disableEnterAndRequireUpdate();
-      version.textContent = 'A new and required version of the launcher is available for download. ';
+    isUpdateRequired = true;
+    enableRequireUpdateVisually();
+
+    console.log('Update of the launcher is required.');
   }
   else
   {
-    enableEnterWithoutRequiringUpdate();
-    version.textContent = 'You have the latest version of the launcher. You do not need to download the launcher.';
+    isUpdateRequired = false;
+    disableRequireUpdateVisually()
+
+    console.log('Update of the launcher is not required.');
   }
 }
 
@@ -96,42 +155,61 @@ function handleEnter()
   window.location.href = uri;
 
   setTimeout(() => {
-      alert("If the game did not launch, please ensure it is properly installed.");
+      alert("If the game did not launch, please ensure it is properly installed.\n\nIf the game opened up and immediately closed, report the issue on our Discord server.");
   }, timeout);
 }
+
+window.onload = setup;
+
 </script>
-<body onload="performVersionCheck(); performCredentialsCheck();">
-  <div class="bg-glass shadow-xl rounded-lg flex flex-col text-center the-main-thingy fade-in">
+<body class="fade-in">
+  <div>
+    <div class="container">
+      <h2>THE PLAYTEST</h2>
+    </div>
+    <div class="container">
+      <h4>Download the launcher</h4>
+      <p id="version">Before playing you <span style="text-decoration: underline;">must download and install</span> the latest version of the game launcher.</p>
+      <a 
+        onclick="handleDownload()" 
+        id="downloadButton" 
+        class="button button-primary" 
+        href="https://drive.proton.me/urls/37WM215Q1R#NlzxAZSg7VFC" 
+        target="_blank">
+      Download the launcher
+      </a>
+      <p>
+        If the download link does not work for you you can use this 
+        <a href="https://drive.google.com/file/d/1NMh_Y8UsTB4HgfR5qVP81ko-ukKSA_00/view" target="_blank"><i class="fa-solid fa-up-right-from-square"></i> Google mirror</a>.
+      </p>
+    </div>
+    <div class="container">
+      <h4>Launch the game</h4>
+      <div id="launch" class="container invisible">
+        <p>Once the <span style="text-decoration: underline;">launcher is installed</span>, click the <span style="text-decoration: underline;">ENTER button</span> below to enter the playtest.</p>
 
-      <div class="container">
-        <h2>THE PLAYTEST</h2>
-      </div>
-
-      <div class="container">
-        <h4>1. Download the launcher</h4>
-
-        <p id="version">Before playing you must download and install the latest version of the game launcher.</p>
-        <a onclick="handleDownload()" id="downloadButton" class="button button-primary" href="https://drive.proton.me/urls/37WM215Q1R#NlzxAZSg7VFC" target="_blank">Download the launcher</a>
-        <p>If the download link does not work for you you can use this <a href="https://drive.google.com/file/d/1NMh_Y8UsTB4HgfR5qVP81ko-ukKSA_00/view" target="_blank"><i class="fa-solid fa-up-right-from-square"></i> Google mirror</a>.</p>
-      </div>
-
-      <div class="container">
-        <h4>2. Launch the game</h4>
-
-        <div id="launch" class="invisible">
-          <p>Once the launcher is installed, click the <span style="text-decoration: underline;">ENTER button</span> below to enter the playtest.</p>
-          <a onclick="handleEnter()" id="enterButton" class="button button-primary">enter the game*</a>
-          <p class="text-sm leading-snug">
-              *By clicking ENTER you agree to the
-              <a href="https://docs.google.com/document/d/1ywa6xnbH2WDev4K81vOlWsSO-dLJ1nrLpUl4mPXBGpQ" target="_blank">
-                <i class="fa-solid fa-up-right-from-square"></i> playtest server's rules</a>.
-          </p>
+        <div class="checkbox">
+          <input id="iunderstandissues" type="checkbox"></input>
+          <span>I understand the game has a lot of bugs and it is not the final version.</span>
         </div>
 
-        <div id="signin">
-          To enter the public play test you must <a href="https://rgnt.xyz/storyofalicia/playtest">sign in with your discord here</a>.
+        <div class="checkbox">
+          <input id="iunderstandrules" type="checkbox"></input>
+          <span>I have read and clearly understand the server rules which I'll obey by.</span>
         </div>
+
+        <a onclick="handleEnter()" id="enterButton" class="button button-primary">enter the game*</a>
+        <p>
+          *By clicking ENTER you agree to the
+          <a href="https://docs.google.com/document/d/1ywa6xnbH2WDev4K81vOlWsSO-dLJ1nrLpUl4mPXBGpQ" target="_blank">
+            <i class="fa-solid fa-up-right-from-square"></i> playtest server's rules</a>.
+        </p>
       </div>
+      <div id="signin">
+        To enter the public play test you must <a href="https://rgnt.xyz/storyofalicia/playtest">
+          sign in with your discord here</a>.
+      </div>
+    </div>
   </div>
 </body>
 </html>

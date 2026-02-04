@@ -25,6 +25,10 @@ let areIssuesAcknowledged = false;
 
 function setup()
 {
+  
+  areRulesAcknowledged = iunderstandrules.checked;
+  areIssuesAcknowledged = iunderstandissues.checked;
+
   performCredentialsCheck();
   performVersionCheck();
   validatePlayConditions();

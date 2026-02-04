@@ -50,6 +50,16 @@ h4
     margin: 0;
 }
 
+a
+{
+    color: var(--foreground);
+}
+
+a i 
+{
+    padding-right: 4px;
+}
+
 p
 {
     text-align: center;
@@ -125,7 +135,7 @@ p
 
 .checkbox 
 {
-    max-width: 25rem;
+    max-width: 27rem;
     text-align: center;
 }
 

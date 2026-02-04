@@ -175,7 +175,7 @@ window.onload = setup;
     </div>
     <div class="container">
       <h4>Download the launcher</h4>
-      <p id="version">Before playing you <span style="text-decoration: underline;">must download and install</span> the latest version of the game launcher.</p>
+      <p id="version">Before playing you must download and install the latest version of the game launcher.</p>
       <a 
         onclick="handleDownload()" 
         id="downloadButton" 
@@ -185,14 +185,18 @@ window.onload = setup;
       Download the launcher
       </a>
       <p>
-        If the download link does not work for you you can use this 
-        <a href="https://drive.google.com/file/d/1NMh_Y8UsTB4HgfR5qVP81ko-ukKSA_00/view" target="_blank"><i class="fa-solid fa-up-right-from-square"></i> Google mirror</a>.
+        If the download link doesn't work for you, you can use this <br>
+        <a 
+          onclick="handleDownload()" 
+          href="https://drive.google.com/file/d/1NMh_Y8UsTB4HgfR5qVP81ko-ukKSA_00/view" 
+          target="_blank">
+           <i class="fa-solid fa-up-right-from-square"></i>Google mirror</a>.
       </p>
     </div>
     <div class="container">
       <h4>Launch the game</h4>
       <div id="launch" class="container invisible">
-        <p>Once the <span style="text-decoration: underline;">launcher is installed</span>, click the <span style="text-decoration: underline;">ENTER</span> below to enter the playtest.</p>
+        <p>Once the launcher is installed, click the ENTER below to enter the playtest.</p>
 
         <div class="checkbox">
           <input id="iunderstandissues" type="checkbox"></input>
@@ -201,15 +205,10 @@ window.onload = setup;
 
         <div class="checkbox">
           <input id="iunderstandrules" type="checkbox"></input>
-          <span>I have read and clearly understand the server rules which I'll obey by.</span>
+          <span>I have read and clearly understand <a href="https://docs.google.com/document/d/1ywa6xnbH2WDev4K81vOlWsSO-dLJ1nrLpUl4mPXBGpQ" target="_blank">
+             <i class="fa-solid fa-up-right-from-square"></i>the server rules</a> which I'll obey by.</span>
         </div>
-
         <a onclick="handleEnter()" id="enterButton" class="button button-primary">enter the game*</a>
-        <p>
-          *By clicking ENTER you agree to the
-          <a href="https://docs.google.com/document/d/1ywa6xnbH2WDev4K81vOlWsSO-dLJ1nrLpUl4mPXBGpQ" target="_blank">
-            <i class="fa-solid fa-up-right-from-square"></i> playtest server's rules</a>.
-        </p>
       </div>
       <div id="signin">
         To enter the public play test you must <a href="https://rgnt.xyz/storyofalicia/playtest">

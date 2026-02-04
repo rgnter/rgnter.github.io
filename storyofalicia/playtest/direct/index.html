@@ -132,7 +132,9 @@ function handleDownload()
   version.textContent = 'A download of the new launcher has started, make sure to install it.';
 
   setTimeout(() => {
-    enableEnterWithoutRequiringUpdate();
+    isUpdateRequired = false;
+    disableRequireUpdateVisually();
+    validatePlayConditions();
     localStorage.setItem("soa-game-version", LatestGameVersion);
   }, 5000);
 }

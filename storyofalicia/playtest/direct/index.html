@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
-    <link rel="stylesheet" href="../common.css">
+    <link rel="stylesheet" href="../assets/common.css">
     <title>Story of Alicia – Testing Grounds</title>
 
     <script src="https://kit.fontawesome.com/0ead5b1f35.js" crossorigin="anonymous"></script>
@@ -33,6 +33,23 @@ function enableEnterWithoutRequiringUpdate()
   enterButton.classList.remove("button-primary-inactive");
   downloadButton.classList.remove("button-primary");
   downloadButton.classList.add("button-secondary");
+}
+
+function performCredentialsCheck()
+{
+  const params = new URLSearchParams(document.location.search);
+  const hasCredentials = params.has("username") && params.has("token");
+
+  if (hasCredentials)
+  {
+    launch.classList.remove("invisible");
+    signin.classList.add("invisible");
+  }
+  else
+  {
+    launch.classList.add("invisible");
+    signin.classList.remove("invisible");
+  }
 }
 
 function performVersionCheck()
@@ -70,6 +87,7 @@ function handleEnter()
    }
 
   const params = new URLSearchParams(document.location.search);
+  
   const username = params.get("username");
   const token = params.get("token");
 
@@ -82,27 +100,37 @@ function handleEnter()
   }, timeout);
 }
 </script>
-<body onload="performVersionCheck();">
+<body onload="performVersionCheck(); performCredentialsCheck();">
   <div class="bg-glass shadow-xl rounded-lg flex flex-col text-center the-main-thingy fade-in">
-      <div>
-          <h2>ENTER THE PLAYTEST</h2>
-          <p>Please follow the following steps to participate in the playtest.</p>
+
+      <div class="container">
+        <h2>THE PLAYTEST</h2>
       </div>
-      <div>
-        <p class="step">1. Download the launcher</p>
+
+      <div class="container">
+        <h4>1. Download the launcher</h4>
+
         <p id="version">Before playing you must download and install the latest version of the game launcher.</p>
         <a onclick="handleDownload()" id="downloadButton" class="button button-primary" href="https://drive.proton.me/urls/37WM215Q1R#NlzxAZSg7VFC" target="_blank">Download the launcher</a>
         <p>If the download link does not work for you you can use this <a href="https://drive.google.com/file/d/1NMh_Y8UsTB4HgfR5qVP81ko-ukKSA_00/view" target="_blank"><i class="fa-solid fa-up-right-from-square"></i> Google mirror</a>.</p>
       </div>
-      <div>
-        <p class="step">2. Launch the game</p>
-          <p>Once the launcher is installed, click the ENTER button below to enter the playtest.</p>
-          <a onclick="handleEnter()" id="enterButton" class="button button-primary">Enter*</a>
+
+      <div class="container">
+        <h4>2. Launch the game</h4>
+
+        <div id="launch" class="invisible">
+          <p>Once the launcher is installed, click the <span style="text-decoration: underline;">ENTER button</span> below to enter the playtest.</p>
+          <a onclick="handleEnter()" id="enterButton" class="button button-primary">enter the game*</a>
           <p class="text-sm leading-snug">
               *By clicking ENTER you agree to the
               <a href="https://docs.google.com/document/d/1ywa6xnbH2WDev4K81vOlWsSO-dLJ1nrLpUl4mPXBGpQ" target="_blank">
                 <i class="fa-solid fa-up-right-from-square"></i> playtest server's rules</a>.
           </p>
+        </div>
+
+        <div "signin">
+          To enter the public play test you must <a href="https://rgnt.xyz/storyofalicia/playtest">sign in with your discord here</a>.
+        </div>
       </div>
   </div>
 </body>

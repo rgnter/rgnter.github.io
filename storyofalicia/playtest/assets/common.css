@@ -1,0 +1,127 @@
+:root 
+{
+  --background: #DFE4EA;
+  --foreground: #6D84BD;
+  --secondary-bg: #B4C9DE;
+  --secondary-fg: #DFE4EA;
+  --foreground-disabled: #7F8FA1;
+  --background-disabled: #ADBDCF;
+}
+
+.fade-in { animation: fadeIn 0.8s ease; }
+
+@keyframes fadeIn 
+{
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+body 
+{
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  background-color: var(--background);
+
+  color: var(--foreground);
+  font-family: "Poppins", sans-serif;
+  font-size: 19px;
+}
+
+h2 
+{
+    font-size: 32px;
+    text-transform: uppercase;
+}
+
+h4 
+{
+    font-size: 22px;
+    text-transform: uppercase;
+    margin: 0;
+}
+
+p
+{
+    text-align: center;
+    max-width: 35rem;
+    margin: 5px;
+}
+
+.container 
+{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    gap: 20px;
+
+    margin-bottom: 50px;
+}
+
+.button 
+{
+    display: block;
+    text-decoration: none;
+
+    min-width: 20rem;
+    text-align: center;
+
+    border-radius: 5px;
+    padding-top: 15px;
+    padding-bottom: 15px;
+    padding-left: 20px;
+    padding-right: 20px;
+    font-weight: bold;
+    text-transform: uppercase;
+    margin: 10px;
+}
+
+.button-primary
+{
+    color: var(--secondary-fg);
+    background-color: var(--foreground);
+}
+
+.button-primary:hover
+{
+    color: var(--secondary-fg);
+    cursor: pointer;
+}
+
+.button-secondary
+{
+    color: var(--foreground);
+    background-color: var(--secondary-bg);
+}
+
+.button-secondary:hover
+{
+    color: var(--foreground);
+    cursor: pointer;
+}
+
+.button-primary-inactive
+{
+    color: var(--foreground-disabled);
+    background-color: var(--background-disabled);
+}
+
+.button-primary-inactive:hover
+{
+    color: var(--foreground-disabled);
+    background-color: var(--background-disabled);
+    cursor: not-allowed;
+}
+
+.icon 
+{
+    display: inline;
+    padding: 5px;
+    vertical-align: middle;
+}
+
+.invisible 
+{
+    display: none;
+}

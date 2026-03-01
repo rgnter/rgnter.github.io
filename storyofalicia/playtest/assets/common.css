@@ -34,7 +34,6 @@ body
   font-family: "Poppins", sans-serif;
   font-size: 19px;
 
-  overflow: hidden;
 }
 
 h2 
@@ -173,4 +172,9 @@ p
 {
     color: var(--background);
     text-decoration: none;
+}
+
+.main {
+    overflow-y: scroll;
+    width: 100%;
 }

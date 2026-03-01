@@ -34,6 +34,7 @@ body
   font-family: "Poppins", sans-serif;
   font-size: 19px;
 
+  overflow-x: hidden;
 }
 
 h2 

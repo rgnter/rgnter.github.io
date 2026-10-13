@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Serial terminal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@100..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<script src="https://kit.fontawesome.com/0ead5b1f35.js" crossorigin="anonymous"></script>
+<style>
+  :root {
+    --bg: #ffffff; --soft: #f0f0f0; --ink: #000000; --muted: #6b6b6b;
+    --on-ink: #ffffff; --stamp: #8a8a8a;
+    --font: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #000000; --soft: #1a1a1a; --ink: #ffffff; --muted: #9a9a9a; --on-ink: #000000; --stamp: #7a7a7a; }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg); color: var(--ink); font: 400 15px/1.45 var(--font);
+  }
+  .app { display: grid; grid-template-columns: 300px 1fr; height: 100%; gap: 16px; padding: 16px; max-width: 1400px; margin: 0 auto; }
+  aside { background: var(--soft); padding: 20px; display: flex; flex-direction: column; gap: 24px; overflow: auto; min-height: 0; }
+  main { display: flex; flex-direction: column; min-height: 0; gap: 12px; }
+  h1 { font-size: 24px; margin: 0; font-weight: 700; line-height: 1.1; }
+  h2 { font-size: 14px; margin: 0 0 10px; font-weight: 500; color: var(--muted); }
+
+  button {
+    font: inherit; font-weight: 600; padding: 9px 14px; cursor: pointer; border: 0; border-radius: 0;
+    background: var(--bg); color: var(--ink);
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  aside button { background: var(--bg); }
+  button:hover:not(:disabled) { background: var(--ink); color: var(--on-ink); }
+  button.primary { background: var(--ink); color: var(--on-ink); }
+  button.primary:hover:not(:disabled) { background: var(--bg); color: var(--ink); }
+  button:disabled { opacity: .3; cursor: not-allowed; }
+  :focus-visible { outline: 2px dashed var(--ink); outline-offset: 2px; }
+
+  select, input[type=text] {
+    font: inherit; width: 100%; padding: 9px 10px; border: 0; border-radius: 0;
+    background: var(--bg); color: var(--ink);
+  }
+  input[type=checkbox] { accent-color: var(--ink); width: 16px; height: 16px; margin: 0; }
+  label.field { display: block; font-size: 14px; color: var(--muted); margin-bottom: 10px; }
+  label.field select { margin-top: 4px; }
+  .check { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
+
+  .ports { display: flex; flex-direction: column; gap: 6px; }
+  .port { width: 100%; justify-content: flex-start; text-align: left; }
+  .port.selected { background: var(--ink); color: var(--on-ink); }
+  .empty { color: var(--muted); font-size: 14px; }
+  .dot { width: 10px; height: 10px; border: 2px solid currentColor; flex: none; }
+  .dot.on { background: currentColor; }
+  .row { display: flex; gap: 6px; }
+  .row > * { flex: 1; }
+  .stack > * + * { margin-top: 6px; }
+
+  .bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 4px; }
+  #status { font-weight: 600; display: flex; align-items: center; gap: 10px; }
+  #term {
+    flex: 1; min-height: 0; overflow: auto; background: #000; color: #fff;
+    font: 400 14px/1.5 var(--font); padding: 14px 16px; white-space: pre-wrap; word-break: break-all;
+  }
+  @media (prefers-color-scheme: dark) { #term { background: #141414; } }
+  #term .ln { display: block; }
+  #term .t { color: #8a8a8a; margin-right: 10px; user-select: none; }
+  #term .tx { opacity: .6; }
+  #term .sys { color: #8a8a8a; }
+  #term .bad > span:last-child { background: #fff; color: #000; padding: 0 4px; }
+  form.send { display: flex; gap: 6px; }
+  .inputwrap { position: relative; flex: 1; background: var(--soft); }
+  .inputwrap:has(input:disabled) { opacity: .4; }
+  .inputwrap input, .inputwrap .hl { font: inherit; line-height: 1.45; padding: 9px 10px; width: 100%; border: 0; letter-spacing: normal; }
+  .inputwrap .hl { position: absolute; inset: 0; white-space: pre; overflow: hidden; pointer-events: none; color: var(--ink); }
+  .inputwrap input { position: relative; background: transparent; color: transparent; caret-color: var(--ink); }
+  .inputwrap input::placeholder { color: var(--muted); }
+  .esc-in { background: var(--ink); color: var(--on-ink); }
+  #term .esc { background: #fff; color: #000; padding: 0 3px; margin: 0 1px; font-size: .85em; }
+  .unsupported { display: none; background: var(--ink); color: var(--on-ink); padding: 10px 16px; margin: 16px 16px 0; }
+  @media (max-width: 800px) {
+    .app { grid-template-columns: 1fr; grid-template-rows: auto 1fr; height: auto; min-height: 100%; }
+    main { min-height: 70vh; }
+  }
+</style>
+</head>
+<body>
+<div class="unsupported" id="unsupported">Web Serial isn't supported here. Use Chrome, Edge or Opera.</div>
+<div class="app">
+  <aside>
+    <h1>Serial terminal</h1>
+
+    <section>
+      <h2>Ports</h2>
+      <div class="ports" id="portList"></div>
+      <div class="row" style="margin-top:10px">
+        <button id="add" class="primary"><i class="fa-solid fa-plus"></i> Add port</button>
+      </div>
+    </section>
+
+    <section class="stack">
+      <label class="field">Baud rate
+        <select id="baud">
+          <option>1200</option><option>2400</option><option>4800</option><option>9600</option>
+          <option>19200</option><option>38400</option><option>57600</option>
+          <option selected>115200</option><option>230400</option><option>460800</option><option>921600</option>
+        </select>
+      </label>
+      <div class="row">
+        <button id="connect" disabled><i class="fa-solid fa-plug"></i> Connect</button>
+        <button id="disconnect" disabled><i class="fa-solid fa-power-off"></i> Disconnect</button>
+      </div>
+    </section>
+
+    <section>
+      <label class="field">Line ending
+        <select id="eol">
+          <option value="\n" selected>LF</option>
+          <option value="\r\n">CR+LF</option>
+          <option value="\r">CR</option>
+          <option value="">None</option>
+        </select>
+      </label>
+      <label class="check"><input type="checkbox" id="stamps" checked> Timestamps</label>
+      <label class="check"><input type="checkbox" id="autoscroll" checked> Auto-scroll</label>
+    </section>
+  </aside>
+
+  <main>
+    <div class="bar">
+      <div id="status"><span class="dot" id="statusDot"></span><span id="statusText">Not connected</span></div>
+      <button id="clear" style="background:var(--soft)"><i class="fa-solid fa-eraser"></i> Clear</button>
+    </div>
+    <div id="term" aria-live="polite"></div>
+    <form class="send" id="sendForm" autocomplete="off">
+      <div class="inputwrap"><div class="hl" id="hl" aria-hidden="true"></div><input type="text" id="msg" placeholder="Message, escapes like \r\n work" disabled aria-label="Message to send" spellcheck="false"></div>
+      <button class="primary" id="sendBtn" disabled><i class="fa-solid fa-paper-plane"></i> Send</button>
+    </form>
+  </main>
+</div>
+
+<script>
+(() => {
+  const supported = 'serial' in navigator;
+  
+  if (!supported) 
+    unsupported.style.display = 'block';
+
+  let ports = [];
+  let selected = null;
+  let conn = null;            // { port, reader, done }
+  const history = []; let histPos = 0;
+
+  // ---------- terminal ----------
+  const stamp = () => new Date().toLocaleTimeString([], { hour12: false }) + '.' + String(Date.now() % 1000).padStart(3, '0');
+  let rxLine = null;
+
+  function newLine(cls) {
+    const el = document.createElement('span');
+    el.className = 'ln ' + cls;
+    if (stamps.checked) {
+      const t = document.createElement('span'); t.className = 't'; t.textContent = stamp(); el.appendChild(t);
+    }
+    el.appendChild(document.createElement('span'));
+    term.appendChild(el);
+    return el;
+  }
+  function follow() {
+    while (term.childElementCount > 5000) term.firstChild.remove();
+    if (autoscroll.checked) term.scrollTop = term.scrollHeight;
+  }
+  function print(text, cls) { newLine(cls).lastChild.textContent = text; rxLine = null; follow(); }
+
+  const decoder = new TextDecoder();
+  const ESC_RE = /(\\[rnt0\\])/g;
+  const ESC_MAP = { r: '\r', n: '\n', t: '\t', '0': '\0', '\\': '\\' };
+  const unescape = str => str.replace(/\\([rnt0\\])/g, (_, c) => ESC_MAP[c]);
+  const visible = ch => ch === '\r' ? '\\r' : ch === '\n' ? '\\n' : ch;
+
+  function chip(text, cls) {
+    const el = document.createElement('span');
+    el.className = cls; el.textContent = text;
+    return el;
+  }
+  // Writes text into el, wrapping escape sequences like \r\n in highlighted chips.
+  function renderEscapes(el, text, cls) {
+    text.split(ESC_RE).forEach((part, i) => {
+      if (!part) return;
+      if (i % 2) el.appendChild(chip(part, cls));
+      else el.appendChild(document.createTextNode(part));
+    });
+  }
+  function printTx(raw, ending) {
+    const c = newLine('tx').lastChild;
+    c.appendChild(document.createTextNode('> '));
+    renderEscapes(c, raw, 'esc');
+    for (const ch of ending) c.appendChild(chip(visible(ch), 'esc'));
+    rxLine = null; follow();
+  }
+
+  function showRx(bytes) {
+    for (const ch of decoder.decode(bytes, { stream: true })) {
+      if (!rxLine) rxLine = newLine('rx');
+      const c = rxLine.lastChild;
+      if (ch === '\r' || ch === '\n') {
+        c.appendChild(chip(visible(ch), 'esc'));
+        if (ch === '\n') rxLine = null;
+      } else {
+        const last = c.lastChild;
+        if (last && last.nodeType === 3) last.data += ch;
+        else c.appendChild(document.createTextNode(ch));
+      }
+    }
+    follow();
+  }
+
+  // ---------- ports ----------
+  const hex4 = n => n.toString(16).padStart(4, '0');
+  function label(port, i) {
+    const { usbVendorId: v, usbProductId: p } = port.getInfo();
+    return v !== undefined ? `Port ${i + 1} · ${hex4(v)}:${hex4(p)}` : `Port ${i + 1}`;
+  }
+
+  async function refresh() {
+    if (!supported) return;
+    ports = await navigator.serial.getPorts();
+    if (selected && !ports.includes(selected)) selected = null;
+    if (!selected && ports.length) selected = (conn && conn.port) || ports[0];
+    render();
+  }
+
+  function render() {
+    const box = portList;
+    box.textContent = '';
+    if (!ports.length) {
+      const e = document.createElement('div'); e.className = 'empty'; e.textContent = 'No ports yet.';
+      box.appendChild(e);
+    }
+    ports.forEach((p, i) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'port' + (p === selected ? ' selected' : '');
+      const dot = document.createElement('span');
+      dot.className = 'dot' + (conn && conn.port === p ? ' on' : '');
+      b.append(dot, label(p, i));
+      b.onclick = () => { selected = p; render(); };
+      box.appendChild(b);
+    });
+    const live = !!conn;
+    connect.disabled = !selected || live;
+    disconnect.disabled = !live;
+    msg.disabled = !live;
+    sendBtn.disabled = !live;
+    baud.disabled = live;
+  }
+
+  function setStatus(text, on) {
+    statusText.textContent = text;
+    statusDot.className = 'dot' + (on ? ' on' : '');
+  }
+
+  // ---------- connect / read / disconnect ----------
+  async function connectPort() {
+    const port = selected;
+    const rate = parseInt(baud.value, 10);
+    try {
+      await port.open({ baudRate: rate });
+    } catch (e) {
+      let hint = '';
+      if (/denied|permission/i.test(e.message)) hint = ' Add your user to the dialout group and log in again.';
+      else if (/open|busy|in use/i.test(e.message)) hint = ' The port may be in use by another program.';
+      print('Could not open port: ' + e.message + hint, 'bad');
+      return;
+    }
+    try { await port.setSignals({ dataTerminalReady: true, requestToSend: true }); } catch (_) {}
+    conn = { port, reader: null, done: null };
+    conn.done = readLoop(conn);
+    setStatus(`Connected · ${rate} baud`, true);
+    print('Connected', 'sys');
+    render();
+    msg.focus();
+  }
+
+  async function readLoop(c) {
+    let lost = false;
+    while (c.port.readable) {
+      c.reader = c.port.readable.getReader();
+      try {
+        for (;;) {
+          const { value, done } = await c.reader.read();
+          if (done) break;
+          if (value && value.length) showRx(value);
+        }
+      } catch (e) {
+        if (!c.closing) { print('Read error: ' + e.message, 'bad'); lost = true; }
+      } finally {
+        c.reader.releaseLock();
+      }
+      if (c.closing || lost) break;
+    }
+    if (!c.closing) { lost = true; await finish(c, true); }
+  }
+
+  async function disconnectPort() {
+    if (!conn) return;
+    const c = conn;
+    c.closing = true;
+    try { if (c.reader) await c.reader.cancel(); } catch (_) {}
+    await c.done;
+    await finish(c, false);
+  }
+
+  async function finish(c, lost) {
+    if (conn !== c) return;
+    try { await c.port.close(); } catch (_) {}
+    conn = null; rxLine = null;
+    print(lost ? 'Connection lost' : 'Disconnected', 'sys');
+    setStatus('Not connected', false);
+    render();
+  }
+
+  // ---------- send ----------
+  async function send(text) {
+    if (!conn) return;
+    const ending = unescape(eol.value);
+    const bytes = new TextEncoder().encode(unescape(text) + ending);
+    const writer = conn.port.writable.getWriter();
+    try {
+      await writer.write(bytes);
+      printTx(text, ending);
+    } catch (e) { print('Send failed: ' + e.message, 'bad'); }
+    finally { writer.releaseLock(); }
+  }
+
+  // Mirrors the input text behind it so \r, \n, \t etc. show up highlighted.
+  function syncHl() {
+    hl.textContent = '';
+    renderEscapes(hl, msg.value, 'esc-in');
+    hl.scrollLeft = msg.scrollLeft;
+  }
+  function setMsg(v) { msg.value = v; syncHl(); }
+  msg.addEventListener('input', syncHl);
+  msg.addEventListener('scroll', () => { hl.scrollLeft = msg.scrollLeft; });
+  msg.addEventListener('keyup', () => { hl.scrollLeft = msg.scrollLeft; });
+
+  // ---------- events ----------
+  add.onclick = async () => {
+    try {
+      const p = await navigator.serial.requestPort();
+      await refresh();
+      if (!ports.includes(p)) ports.push(p);
+      selected = p;
+      render();
+    } catch (e) { if (e.name !== 'NotFoundError') print(e.message, 'bad'); }
+  };
+  connect.onclick = connectPort;
+  disconnect.onclick = disconnectPort;
+  clear.onclick = () => { term.textContent = ''; rxLine = null; };
+
+  sendForm.onsubmit = async e => {
+    e.preventDefault();
+    const v = msg.value;
+    if (!v && !eol.value) return;
+    history.push(v); histPos = history.length;
+    setMsg('');
+    await send(v);
+  };
+  msg.onkeydown = e => {
+    if (e.key === 'ArrowUp' && histPos > 0) { setMsg(history[--histPos]); e.preventDefault(); }
+    if (e.key === 'ArrowDown') { setMsg(histPos < history.length - 1 ? history[++histPos] : (histPos = history.length, '')); e.preventDefault(); }
+  };
+
+  if (supported) {
+    navigator.serial.addEventListener('connect', refresh);
+    navigator.serial.addEventListener('disconnect', e => {
+      if (conn && conn.port === e.target) finish(conn, true);
+      refresh();
+    });
+    refresh();
+  }
+  render();
+})();
+</script>
+</body>
+</html>

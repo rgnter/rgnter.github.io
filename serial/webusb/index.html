@@ -3,85 +3,86 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Serial terminal</title>
+<title>USB serial terminal</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@100..800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Bitcount+Single:wght@100..900&display=swap" rel="stylesheet">
 <script src="https://kit.fontawesome.com/0ead5b1f35.js" crossorigin="anonymous"></script>
 <style>
   :root {
-    --bg: #ffffff; --soft: #f0f0f0; --ink: #000000; --muted: #6b6b6b;
-    --on-ink: #ffffff; --stamp: #8a8a8a;
-    --font: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --bg: #ffffff; --panel: #ffffff; --line: #000000; --ink: #000000; --muted: #555555;
+    --accent: #000000; --accent-ink: #ffffff; --soft: #eeeeee;
+    --term-bg: #000000; --term-ink: #ffffff; --stamp: #8a8a8a;
+    --mono: "Bitcount Single", ui-monospace, Menlo, Consolas, monospace;
+    --sans: "Bitcount Single", system-ui, sans-serif;
   }
   @media (prefers-color-scheme: dark) {
-    :root { --bg: #000000; --soft: #1a1a1a; --ink: #ffffff; --muted: #9a9a9a; --on-ink: #000000; --stamp: #7a7a7a; }
+    :root {
+      --bg: #000000; --panel: #000000; --line: #ffffff; --ink: #ffffff; --muted: #a8a8a8;
+      --accent: #ffffff; --accent-ink: #000000; --soft: #1a1a1a;
+      --term-bg: #000000; --term-ink: #ffffff; --stamp: #7a7a7a;
+    }
   }
   * { box-sizing: border-box; }
   html, body { height: 100%; margin: 0; }
   body {
-    background: var(--bg); color: var(--ink); font: 400 15px/1.45 var(--font);
+    background: var(--bg); color: var(--ink); font: 400 16px/1.45 var(--sans);
+    font-optical-sizing: auto; font-style: normal;
+    font-variation-settings: "slnt" 0, "CRSV" 0.5, "ELSH" 0, "ELXP" 0;
   }
-  .app { display: grid; grid-template-columns: 300px 1fr; height: 100%; gap: 16px; padding: 16px; max-width: 1400px; margin: 0 auto; }
-  aside { background: var(--soft); padding: 20px; display: flex; flex-direction: column; gap: 24px; overflow: auto; min-height: 0; }
-  main { display: flex; flex-direction: column; min-height: 0; gap: 12px; }
+  .app { display: grid; grid-template-columns: 330px 1fr; height: 100%; gap: 16px; padding: 16px; max-width: 1400px; margin: 0 auto; }
+  aside, main { background: var(--panel); border: 2px solid var(--line); min-height: 0; }
+  aside { padding: 20px; display: flex; flex-direction: column; gap: 22px; overflow: auto; }
+  main { display: flex; flex-direction: column; overflow: hidden; }
   h1 { font-size: 24px; margin: 0; font-weight: 700; line-height: 1.1; }
-  h2 { font-size: 14px; margin: 0 0 10px; font-weight: 500; color: var(--muted); }
-
+  h2 { font-size: 15px; margin: 0 0 10px; font-weight: 600; padding-bottom: 6px; border-bottom: 2px solid var(--line); }
+  p.hint { margin: 6px 0 0; color: var(--muted); font-size: 14px; }
   button {
-    font: inherit; font-weight: 600; padding: 9px 14px; cursor: pointer; border: 0; border-radius: 0;
-    background: var(--bg); color: var(--ink);
+    font: inherit; font-weight: 600; padding: 8px 14px; cursor: pointer;
+    border: 2px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 0;
     display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   }
-  aside button { background: var(--bg); }
-  button:hover:not(:disabled) { background: var(--ink); color: var(--on-ink); }
-  button.primary { background: var(--ink); color: var(--on-ink); }
-  button.primary:hover:not(:disabled) { background: var(--bg); color: var(--ink); }
+  button:hover:not(:disabled) { background: var(--ink); color: var(--bg); }
+  button.primary { background: var(--accent); color: var(--accent-ink); }
+  button.primary:hover:not(:disabled) { background: var(--panel); color: var(--ink); }
   button:disabled { opacity: .3; cursor: not-allowed; }
-  :focus-visible { outline: 2px dashed var(--ink); outline-offset: 2px; }
-
+  :focus-visible { outline: 3px dashed var(--ink); outline-offset: 2px; }
   select, input[type=text] {
-    font: inherit; width: 100%; padding: 9px 10px; border: 0; border-radius: 0;
-    background: var(--bg); color: var(--ink);
+    font: inherit; width: 100%; padding: 8px 10px; border-radius: 0;
+    border: 2px solid var(--line); background: var(--panel); color: var(--ink);
   }
   input[type=checkbox] { accent-color: var(--ink); width: 16px; height: 16px; margin: 0; }
   label.field { display: block; font-size: 14px; color: var(--muted); margin-bottom: 10px; }
   label.field select { margin-top: 4px; }
-  .check { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
-
-  .ports { display: flex; flex-direction: column; gap: 6px; }
-  .port { width: 100%; justify-content: flex-start; text-align: left; }
-  .port.selected { background: var(--ink); color: var(--on-ink); }
-  .empty { color: var(--muted); font-size: 14px; }
-  .dot { width: 10px; height: 10px; border: 2px solid currentColor; flex: none; }
+  .check { display: flex; align-items: center; gap: 8px; font-size: 15px; margin: 6px 0; }
+  .devices { display: flex; flex-direction: column; gap: 8px; }
+  .device { text-align: left; width: 100%; display: block; padding: 10px 12px; }
+  .device.selected { background: var(--ink); color: var(--bg); }
+  .device.selected .meta { color: var(--bg); opacity: .75; }
+  .device:hover:not(:disabled) { background: var(--soft); color: var(--ink); }
+  .device.selected:hover:not(:disabled) { background: var(--ink); color: var(--bg); }
+  .device .name { font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .device .meta { font-size: 13px; color: var(--muted); margin-top: 2px; font-weight: 400; }
+  .dot { width: 10px; height: 10px; border: 2px solid currentColor; flex: none; display: inline-block; }
   .dot.on { background: currentColor; }
-  .row { display: flex; gap: 6px; }
+  .empty { color: var(--muted); font-size: 14px; padding: 12px; border: 2px dashed var(--line); }
+  .row { display: flex; gap: 8px; }
   .row > * { flex: 1; }
-  .stack > * + * { margin-top: 6px; }
-
-  .bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 4px; }
+  .bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-bottom: 2px solid var(--line); }
   #status { font-weight: 600; display: flex; align-items: center; gap: 10px; }
   #term {
-    flex: 1; min-height: 0; overflow: auto; background: #000; color: #fff;
-    font: 400 14px/1.5 var(--font); padding: 14px 16px; white-space: pre-wrap; word-break: break-all;
+    flex: 1; min-height: 0; overflow: auto; background: var(--term-bg); color: var(--term-ink);
+    font: 400 15px/1.5 var(--mono); padding: 14px 16px; white-space: pre-wrap; word-break: break-all;
   }
-  @media (prefers-color-scheme: dark) { #term { background: #141414; } }
   #term .ln { display: block; }
-  #term .t { color: #8a8a8a; margin-right: 10px; user-select: none; }
-  #term .tx { opacity: .6; }
-  #term .sys { color: #8a8a8a; }
-  #term .bad > span:last-child { background: #fff; color: #000; padding: 0 4px; }
-  form.send { display: flex; gap: 6px; }
-  .inputwrap { position: relative; flex: 1; background: var(--soft); }
-  .inputwrap:has(input:disabled) { opacity: .4; }
-  .inputwrap input, .inputwrap .hl { font: inherit; line-height: 1.45; padding: 9px 10px; width: 100%; border: 0; letter-spacing: normal; }
-  .inputwrap .hl { position: absolute; inset: 0; white-space: pre; overflow: hidden; pointer-events: none; color: var(--ink); }
-  .inputwrap input { position: relative; background: transparent; color: transparent; caret-color: var(--ink); }
-  .inputwrap input::placeholder { color: var(--muted); }
-  .esc-in { background: var(--ink); color: var(--on-ink); }
-  #term .esc { background: #fff; color: #000; padding: 0 3px; margin: 0 1px; font-size: .85em; }
-  .unsupported { display: none; background: var(--ink); color: var(--on-ink); padding: 10px 16px; margin: 16px 16px 0; }
+  #term .t { color: var(--stamp); margin-right: 10px; user-select: none; }
+  #term .rx { color: var(--term-ink); }
+  #term .tx { color: var(--term-ink); opacity: .6; }
+  #term .sys { color: var(--stamp); }
+  #term .bad span:last-child { background: var(--term-ink); color: var(--term-bg); padding: 0 4px; }
+  form.send { display: flex; gap: 8px; padding: 12px 16px; border-top: 2px solid var(--line); }
+  form.send input { flex: 1; }
+  .unsupported { display: none; background: var(--ink); color: var(--bg); padding: 10px 16px; margin: 16px 16px 0; }
   @media (max-width: 800px) {
     .app { grid-template-columns: 1fr; grid-template-rows: auto 1fr; height: auto; min-height: 100%; }
     main { min-height: 70vh; }
@@ -89,20 +90,26 @@
 </style>
 </head>
 <body>
-<div class="unsupported" id="unsupported">Web Serial isn't supported here. Use Chrome, Edge or Opera.</div>
+<div class="unsupported" id="unsupported">WebUSB isn't available in this browser. Use Chrome, Edge or Opera on a page served over HTTPS or from localhost.</div>
 <div class="app">
   <aside>
-    <h1>Serial terminal</h1>
+    <div>
+      <h1>USB serial terminal</h1>
+      <p class="hint">Talk to CDC&nbsp;ACM devices (ttyACM) straight from the browser.</p>
+    </div>
 
     <section>
-      <h2>Ports</h2>
-      <div class="ports" id="portList"></div>
+      <h2>Devices</h2>
+      <div class="devices" id="devices"></div>
       <div class="row" style="margin-top:10px">
-        <button id="add" class="primary"><i class="fa-solid fa-plus"></i> Add port</button>
+        <button id="add" class="primary"><i class="fa-solid fa-plus"></i> Add device</button>
+        <button id="refresh"><i class="fa-solid fa-rotate"></i> Refresh</button>
       </div>
+      <p class="hint">Devices you've allowed before appear here automatically.</p>
     </section>
 
-    <section class="stack">
+    <section>
+      <h2>Connection</h2>
       <label class="field">Baud rate
         <select id="baud">
           <option>1200</option><option>2400</option><option>4800</option><option>9600</option>
@@ -117,27 +124,30 @@
     </section>
 
     <section>
-      <label class="field">Line ending
+      <h2>Send &amp; receive</h2>
+      <label class="field">Line ending on send
         <select id="eol">
-          <option value="\n" selected>LF</option>
-          <option value="\r\n">CR+LF</option>
-          <option value="\r">CR</option>
+          <option value="\n" selected>LF (\n)</option>
+          <option value="\r\n">CR+LF (\r\n)</option>
+          <option value="\r">CR (\r)</option>
           <option value="">None</option>
         </select>
       </label>
+      <label class="check"><input type="checkbox" id="hexTx"> Send as hex bytes</label>
+      <label class="check"><input type="checkbox" id="hexRx"> Show received data as hex</label>
       <label class="check"><input type="checkbox" id="stamps" checked> Timestamps</label>
-      <label class="check"><input type="checkbox" id="autoscroll" checked> Auto-scroll</label>
+      <label class="check"><input type="checkbox" id="scroll" checked> Auto-scroll</label>
     </section>
   </aside>
 
   <main>
     <div class="bar">
       <div id="status"><span class="dot" id="statusDot"></span><span id="statusText">Not connected</span></div>
-      <button id="clear" style="background:var(--soft)"><i class="fa-solid fa-eraser"></i> Clear</button>
+      <button id="clear"><i class="fa-solid fa-eraser"></i> Clear</button>
     </div>
     <div id="term" aria-live="polite"></div>
     <form class="send" id="sendForm" autocomplete="off">
-      <div class="inputwrap"><div class="hl" id="hl" aria-hidden="true"></div><input type="text" id="msg" placeholder="Message, escapes like \r\n work" disabled aria-label="Message to send" spellcheck="false"></div>
+      <input type="text" id="msg" placeholder="Type a message and press Enter" disabled aria-label="Message to send">
       <button class="primary" id="sendBtn" disabled><i class="fa-solid fa-paper-plane"></i> Send</button>
     </form>
   </main>
@@ -145,244 +155,254 @@
 
 <script>
 (() => {
-  const supported = 'serial' in navigator;
-  
-  if (!supported) 
-    unsupported.style.display = 'block';
+  const $ = id => document.getElementById(id);
+  const term = $('term');
+  const hex = n => n.toString(16).padStart(4, '0');
 
-  let ports = [];
-  let selected = null;
-  let conn = null;            // { port, reader, done }
+  if (!('usb' in navigator)) $('unsupported').style.display = 'block';
+
+  // ---------- state ----------
+  let known = [];            // CDC-capable USBDevice objects
+  let selected = null;       // device chosen in the list
+  let conn = null;           // { device, comm, data, epIn, epOut, open }
   const history = []; let histPos = 0;
 
-  // ---------- terminal ----------
+  // ---------- terminal output ----------
   const stamp = () => new Date().toLocaleTimeString([], { hour12: false }) + '.' + String(Date.now() % 1000).padStart(3, '0');
   let rxLine = null;
 
   function newLine(cls) {
     const el = document.createElement('span');
     el.className = 'ln ' + cls;
-    if (stamps.checked) {
+    if ($('stamps').checked) {
       const t = document.createElement('span'); t.className = 't'; t.textContent = stamp(); el.appendChild(t);
     }
     el.appendChild(document.createElement('span'));
     term.appendChild(el);
     return el;
   }
+  function print(text, cls) { newLine(cls).lastChild.textContent = text; rxLine = null; follow(); }
   function follow() {
     while (term.childElementCount > 5000) term.firstChild.remove();
-    if (autoscroll.checked) term.scrollTop = term.scrollHeight;
-  }
-  function print(text, cls) { newLine(cls).lastChild.textContent = text; rxLine = null; follow(); }
-
-  const decoder = new TextDecoder();
-  const ESC_RE = /(\\[rnt0\\])/g;
-  const ESC_MAP = { r: '\r', n: '\n', t: '\t', '0': '\0', '\\': '\\' };
-  const unescape = str => str.replace(/\\([rnt0\\])/g, (_, c) => ESC_MAP[c]);
-  const visible = ch => ch === '\r' ? '\\r' : ch === '\n' ? '\\n' : ch;
-
-  function chip(text, cls) {
-    const el = document.createElement('span');
-    el.className = cls; el.textContent = text;
-    return el;
-  }
-  // Writes text into el, wrapping escape sequences like \r\n in highlighted chips.
-  function renderEscapes(el, text, cls) {
-    text.split(ESC_RE).forEach((part, i) => {
-      if (!part) return;
-      if (i % 2) el.appendChild(chip(part, cls));
-      else el.appendChild(document.createTextNode(part));
-    });
-  }
-  function printTx(raw, ending) {
-    const c = newLine('tx').lastChild;
-    c.appendChild(document.createTextNode('> '));
-    renderEscapes(c, raw, 'esc');
-    for (const ch of ending) c.appendChild(chip(visible(ch), 'esc'));
-    rxLine = null; follow();
+    if ($('scroll').checked) term.scrollTop = term.scrollHeight;
   }
 
+  const decoder = new TextDecoder('utf-8');
   function showRx(bytes) {
-    for (const ch of decoder.decode(bytes, { stream: true })) {
-      if (!rxLine) rxLine = newLine('rx');
-      const c = rxLine.lastChild;
-      if (ch === '\r' || ch === '\n') {
-        c.appendChild(chip(visible(ch), 'esc'));
-        if (ch === '\n') rxLine = null;
-      } else {
-        const last = c.lastChild;
-        if (last && last.nodeType === 3) last.data += ch;
-        else c.appendChild(document.createTextNode(ch));
-      }
+    if ($('hexRx').checked) {
+      print([...bytes].map(b => b.toString(16).padStart(2, '0')).join(' '), 'rx');
+      return;
     }
+    const parts = decoder.decode(bytes, { stream: true }).replace(/\r/g, '').split('\n');
+    parts.forEach((p, i) => {
+      if (p) { if (!rxLine) rxLine = newLine('rx'); rxLine.lastChild.textContent += p; }
+      if (i < parts.length - 1) { if (!rxLine) rxLine = newLine('rx'); rxLine = null; }
+    });
     follow();
   }
 
-  // ---------- ports ----------
-  const hex4 = n => n.toString(16).padStart(4, '0');
-  function label(port, i) {
-    const { usbVendorId: v, usbProductId: p } = port.getInfo();
-    return v !== undefined ? `Port ${i + 1} · ${hex4(v)}:${hex4(p)}` : `Port ${i + 1}`;
+  // ---------- device discovery ----------
+  function describe(device) {
+    // Find a CDC data interface (class 0x0A) with bulk IN+OUT, and its control interface (class 0x02).
+    const cfgs = device.configurations && device.configurations.length ? device.configurations : [];
+    for (const cfg of cfgs) {
+      let comm = null, data = null;
+      for (const itf of cfg.interfaces) {
+        for (const alt of itf.alternates) {
+          if (alt.interfaceClass === 0x02 && alt.interfaceSubclass === 0x02 && !comm) comm = itf.interfaceNumber;
+          if (alt.interfaceClass === 0x0a && !data) {
+            const epIn = alt.endpoints.find(e => e.type === 'bulk' && e.direction === 'in');
+            const epOut = alt.endpoints.find(e => e.type === 'bulk' && e.direction === 'out');
+            if (epIn && epOut) data = { num: itf.interfaceNumber, alt: alt.alternateSetting, epIn, epOut, cfg: cfg.configurationValue };
+          }
+        }
+      }
+      if (data) return { comm, data };
+    }
+    return null;
   }
 
   async function refresh() {
-    if (!supported) return;
-    ports = await navigator.serial.getPorts();
-    if (selected && !ports.includes(selected)) selected = null;
-    if (!selected && ports.length) selected = (conn && conn.port) || ports[0];
-    render();
+    if (!('usb' in navigator)) return;
+    const all = await navigator.usb.getDevices();
+    known = all.filter(d => describe(d));
+    if (selected && !known.includes(selected)) selected = null;
+    if (!selected && known.length) selected = (conn && conn.device) || known[0];
+    renderDevices();
   }
 
-  function render() {
-    const box = portList;
+  function renderDevices() {
+    const box = $('devices');
     box.textContent = '';
-    if (!ports.length) {
-      const e = document.createElement('div'); e.className = 'empty'; e.textContent = 'No ports yet.';
+    if (!known.length) {
+      const e = document.createElement('div');
+      e.className = 'empty';
+      e.textContent = 'No devices yet. Choose "Add device" and pick your board.';
       box.appendChild(e);
     }
-    ports.forEach((p, i) => {
+    for (const d of known) {
       const b = document.createElement('button');
       b.type = 'button';
-      b.className = 'port' + (p === selected ? ' selected' : '');
-      const dot = document.createElement('span');
-      dot.className = 'dot' + (conn && conn.port === p ? ' on' : '');
-      b.append(dot, label(p, i));
-      b.onclick = () => { selected = p; render(); };
+      b.className = 'device' + (d === selected ? ' selected' : '');
+      const on = conn && conn.device === d && conn.open;
+      const name = document.createElement('div'); name.className = 'name';
+      const dot = document.createElement('span'); dot.className = 'dot' + (on ? ' on' : '');
+      const ico = document.createElement('i'); ico.className = 'fa-solid fa-microchip';
+      name.append(dot, ico, ' ' + (d.productName || 'USB serial device'));
+      const meta = document.createElement('div'); meta.className = 'meta';
+      meta.textContent = `${hex(d.vendorId)}:${hex(d.productId)}` + (d.serialNumber ? ' · ' + d.serialNumber : '');
+      b.append(name, meta);
+      b.onclick = () => { selected = d; renderDevices(); updateButtons(); };
       box.appendChild(b);
-    });
-    const live = !!conn;
-    connect.disabled = !selected || live;
-    disconnect.disabled = !live;
-    msg.disabled = !live;
-    sendBtn.disabled = !live;
-    baud.disabled = live;
+    }
+    updateButtons();
+  }
+
+  function updateButtons() {
+    const live = conn && conn.open;
+    $('connect').disabled = !selected || !!live;
+    $('disconnect').disabled = !live;
+    $('msg').disabled = !live;
+    $('sendBtn').disabled = !live;
+    $('baud').disabled = !!live;
   }
 
   function setStatus(text, on) {
-    statusText.textContent = text;
-    statusDot.className = 'dot' + (on ? ' on' : '');
+    $('statusText').textContent = text;
+    $('statusDot').className = 'dot' + (on ? ' on' : '');
   }
 
-  // ---------- connect / read / disconnect ----------
-  async function connectPort() {
-    const port = selected;
-    const rate = parseInt(baud.value, 10);
+  // ---------- connect / disconnect ----------
+  async function connect() {
+    const device = selected;
+    const info = describe(device);
+    if (!info) return print('This device has no CDC data interface.', 'bad');
     try {
-      await port.open({ baudRate: rate });
+      await device.open();
+      if (!device.configuration || device.configuration.configurationValue !== info.data.cfg)
+        await device.selectConfiguration(info.data.cfg);
+      if (info.comm !== null) await device.claimInterface(info.comm);
+      await device.claimInterface(info.data.num);
+      await device.selectAlternateInterface(info.data.num, info.data.alt);
+
+      conn = { device, comm: info.comm, data: info.data, open: true };
+
+      if (info.comm !== null) {
+        // CDC: SET_LINE_CODING then SET_CONTROL_LINE_STATE (DTR + RTS)
+        const baud = parseInt($('baud').value, 10);
+        const lc = new DataView(new ArrayBuffer(7));
+        lc.setUint32(0, baud, true); lc.setUint8(4, 0); lc.setUint8(5, 0); lc.setUint8(6, 8);
+        try {
+          await device.controlTransferOut({ requestType: 'class', recipient: 'interface', request: 0x20, value: 0, index: info.comm }, lc.buffer);
+          await device.controlTransferOut({ requestType: 'class', recipient: 'interface', request: 0x22, value: 0x03, index: info.comm });
+        } catch (e) { print('Device ignored line settings (' + e.message + '). Continuing.', 'sys'); }
+      }
+
+      setStatus(`Connected to ${device.productName || 'device'} @ ${$('baud').value} baud`, true);
+      print('Connected.', 'sys');
+      renderDevices();
+      $('msg').focus();
+      readLoop(conn);
     } catch (e) {
+      conn = null;
+      try { await device.close(); } catch (_) {}
       let hint = '';
-      if (/denied|permission/i.test(e.message)) hint = ' Add your user to the dialout group and log in again.';
-      else if (/open|busy|in use/i.test(e.message)) hint = ' The port may be in use by another program.';
-      print('Could not open port: ' + e.message + hint, 'bad');
-      return;
+      if (/claim/i.test(e.message)) hint = ' Another driver or program is holding the interface. On Windows install the WinUSB driver (e.g. with Zadig); on Linux close any serial monitor and check udev permissions.';
+      print('Could not connect: ' + e.message + hint, 'bad');
+      setStatus('Not connected', false);
+      renderDevices();
     }
-    try { await port.setSignals({ dataTerminalReady: true, requestToSend: true }); } catch (_) {}
-    conn = { port, reader: null, done: null };
-    conn.done = readLoop(conn);
-    setStatus(`Connected · ${rate} baud`, true);
-    print('Connected', 'sys');
-    render();
-    msg.focus();
   }
 
   async function readLoop(c) {
-    let lost = false;
-    while (c.port.readable) {
-      c.reader = c.port.readable.getReader();
+    const size = (c.data.epIn.packetSize || 64) * 8;
+    while (c.open) {
       try {
-        for (;;) {
-          const { value, done } = await c.reader.read();
-          if (done) break;
-          if (value && value.length) showRx(value);
-        }
+        const r = await c.device.transferIn(c.data.epIn.endpointNumber, size);
+        if (r.status === 'babble') { print('Receive overflow, data may be lost.', 'bad'); continue; }
+        if (r.status === 'stall') { await c.device.clearHalt('in', c.data.epIn.endpointNumber); continue; }
+        if (r.data && r.data.byteLength) showRx(new Uint8Array(r.data.buffer, r.data.byteOffset, r.data.byteLength));
       } catch (e) {
-        if (!c.closing) { print('Read error: ' + e.message, 'bad'); lost = true; }
-      } finally {
-        c.reader.releaseLock();
+        if (c.open) { print('Read stopped: ' + e.message, 'bad'); await teardown(c, true); }
+        return;
       }
-      if (c.closing || lost) break;
     }
-    if (!c.closing) { lost = true; await finish(c, true); }
   }
 
-  async function disconnectPort() {
-    if (!conn) return;
-    const c = conn;
-    c.closing = true;
-    try { if (c.reader) await c.reader.cancel(); } catch (_) {}
-    await c.done;
-    await finish(c, false);
-  }
-
-  async function finish(c, lost) {
-    if (conn !== c) return;
-    try { await c.port.close(); } catch (_) {}
-    conn = null; rxLine = null;
-    print(lost ? 'Connection lost' : 'Disconnected', 'sys');
-    setStatus('Not connected', false);
-    render();
-  }
-
-  // ---------- send ----------
-  async function send(text) {
-    if (!conn) return;
-    const ending = unescape(eol.value);
-    const bytes = new TextEncoder().encode(unescape(text) + ending);
-    const writer = conn.port.writable.getWriter();
+  async function teardown(c, lost) {
+    if (!c || !c.open) return;
+    c.open = false;
     try {
-      await writer.write(bytes);
-      printTx(text, ending);
-    } catch (e) { print('Send failed: ' + e.message, 'bad'); }
-    finally { writer.releaseLock(); }
+      if (!lost && c.comm !== null)
+        await c.device.controlTransferOut({ requestType: 'class', recipient: 'interface', request: 0x22, value: 0, index: c.comm });
+    } catch (_) {}
+    try { await c.device.releaseInterface(c.data.num); } catch (_) {}
+    try { if (c.comm !== null) await c.device.releaseInterface(c.comm); } catch (_) {}
+    try { await c.device.close(); } catch (_) {}
+    if (conn === c) conn = null;
+    rxLine = null;
+    print(lost ? 'Connection lost.' : 'Disconnected.', 'sys');
+    setStatus('Not connected', false);
+    renderDevices();
   }
 
-  // Mirrors the input text behind it so \r, \n, \t etc. show up highlighted.
-  function syncHl() {
-    hl.textContent = '';
-    renderEscapes(hl, msg.value, 'esc-in');
-    hl.scrollLeft = msg.scrollLeft;
+  // ---------- sending ----------
+  function parseHex(s) {
+    const clean = s.replace(/0x/gi, '').replace(/[\s,:-]+/g, '');
+    if (!clean || clean.length % 2 || /[^0-9a-f]/i.test(clean)) throw new Error('Enter hex bytes like "48 65 6C 6C 6F".');
+    return Uint8Array.from(clean.match(/../g).map(h => parseInt(h, 16)));
   }
-  function setMsg(v) { msg.value = v; syncHl(); }
-  msg.addEventListener('input', syncHl);
-  msg.addEventListener('scroll', () => { hl.scrollLeft = msg.scrollLeft; });
-  msg.addEventListener('keyup', () => { hl.scrollLeft = msg.scrollLeft; });
+
+  async function send(text) {
+    if (!conn || !conn.open) return;
+    let bytes;
+    try {
+      bytes = $('hexTx').checked ? parseHex(text) : new TextEncoder().encode(text + $('eol').value.replace('\\r', '\r').replace('\\n', '\n'));
+    } catch (e) { return print(e.message, 'bad'); }
+    try {
+      await conn.device.transferOut(conn.data.epOut.endpointNumber, bytes);
+      rxLine = null;
+      print('> ' + text, 'tx');
+    } catch (e) { print('Send failed: ' + e.message, 'bad'); }
+  }
 
   // ---------- events ----------
-  add.onclick = async () => {
+  $('add').onclick = async () => {
     try {
-      const p = await navigator.serial.requestPort();
+      const d = await navigator.usb.requestDevice({ filters: [{ classCode: 0x02, subclassCode: 0x02 }, { classCode: 0x0a }] });
       await refresh();
-      if (!ports.includes(p)) ports.push(p);
-      selected = p;
-      render();
+      selected = known.find(k => k === d) || known.find(k => k.vendorId === d.vendorId && k.productId === d.productId) || selected;
+      renderDevices();
+      if (!describe(d)) print('That device has no CDC ACM interface.', 'bad');
     } catch (e) { if (e.name !== 'NotFoundError') print(e.message, 'bad'); }
   };
-  connect.onclick = connectPort;
-  disconnect.onclick = disconnectPort;
-  clear.onclick = () => { term.textContent = ''; rxLine = null; };
+  $('refresh').onclick = refresh;
+  $('connect').onclick = connect;
+  $('disconnect').onclick = () => teardown(conn, false);
+  $('clear').onclick = () => { term.textContent = ''; rxLine = null; };
 
-  sendForm.onsubmit = async e => {
+  $('sendForm').onsubmit = async e => {
     e.preventDefault();
-    const v = msg.value;
-    if (!v && !eol.value) return;
+    const v = $('msg').value;
+    if (!v && !$('eol').value) return;
     history.push(v); histPos = history.length;
-    setMsg('');
+    $('msg').value = '';
     await send(v);
   };
-  msg.onkeydown = e => {
-    if (e.key === 'ArrowUp' && histPos > 0) { setMsg(history[--histPos]); e.preventDefault(); }
-    if (e.key === 'ArrowDown') { setMsg(histPos < history.length - 1 ? history[++histPos] : (histPos = history.length, '')); e.preventDefault(); }
+  $('msg').onkeydown = e => {
+    if (e.key === 'ArrowUp' && histPos > 0) { $('msg').value = history[--histPos]; e.preventDefault(); }
+    if (e.key === 'ArrowDown') { $('msg').value = histPos < history.length - 1 ? history[++histPos] : (histPos = history.length, ''); e.preventDefault(); }
   };
 
-  if (supported) {
-    navigator.serial.addEventListener('connect', refresh);
-    navigator.serial.addEventListener('disconnect', e => {
-      if (conn && conn.port === e.target) finish(conn, true);
+  if ('usb' in navigator) {
+    navigator.usb.addEventListener('connect', refresh);
+    navigator.usb.addEventListener('disconnect', e => {
+      if (conn && conn.device === e.device) teardown(conn, true);
       refresh();
     });
     refresh();
   }
-  render();
+  updateButtons();
 })();
 </script>
 </body>

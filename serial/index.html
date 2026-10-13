@@ -74,7 +74,7 @@
     font-variation-settings: "slnt" 0, "CRSV" 0.5, "ELSH" 0, "ELXP" 0; white-space: pre-wrap; word-break: break-all;
   }
   @media (prefers-color-scheme: dark) { #term { background: #141414; } }
-  #term .ln { display: block; }
+  #term .ln { display: block; min-height: 1.5em; }
   #term .t { color: #8a8a8a; margin-right: 10px; user-select: none; }
   #term .tx { opacity: .6; }
   #term .sys { color: #8a8a8a; }
@@ -87,6 +87,9 @@
   .inputwrap input { position: relative; background: transparent; color: transparent; caret-color: var(--ink); }
   .inputwrap input::placeholder { color: var(--muted); }
   .esc-in { background: var(--ink); color: var(--on-ink); }
+  body.nohl #term .esc { background: none; color: inherit; padding: 0; margin: 0; font-size: inherit; }
+  body.nohl #term .esc.eol { display: none; }
+  body.nohl .esc-in { background: none; color: var(--ink); }
   #term .esc { background: #fff; color: #000; padding: 0 3px; margin: 0 1px; font-size: .85em; }
   .unsupported { display: none; background: var(--ink); color: var(--on-ink); padding: 10px 16px; margin: 16px 16px 0; }
   @media (max-width: 800px) {
@@ -140,9 +143,12 @@
     </section>
 
     <section>
-      <h2>Application behaviour</h2>
-      <label class="check"><input type="checkbox" id="stamps" checked> Timestamps in console</label>
-      <label class="check"><input type="checkbox" id="autoscroll" checked> Auto-scroll console</label>
+      <h2>Application configuration</h2>
+      <h2>Console</h3>
+      <label class="check"><input type="checkbox" id="stamps" checked> Timestamps</label>
+      <label class="check"><input type="checkbox" id="highlight" checked> Highlight line endings</label>
+      <label class="check"><input type="checkbox" id="autoscroll" checked> Auto-scroll</label>
+      <h2>Device</h2>
       <label class="check"><input type="checkbox" id="autoreconnect" checked> Auto-reconnect</label>
     </section>
 
@@ -152,7 +158,7 @@
         <button id="connect" disabled><i class="fa-solid fa-plug"></i> Connect</button>
         <button id="disconnect" disabled><i class="fa-solid fa-power-off"></i> Disconnect</button>
       </div>
-      <button id="forget" disabled style="width:100%"><i class="fa-solid fa-trash"></i> Remove device</button>
+      <button id="forget" disabled style="width:100%"><i class="fa-solid fa-trash"></i> Unpair the device</button>
     </section>
   </aside>
 
@@ -163,7 +169,7 @@
     </div>
     <div id="term" aria-live="polite"></div>
     <form class="send" id="sendForm" autocomplete="off">
-      <div class="inputwrap"><div class="hl" id="hl" aria-hidden="true"></div><input type="text" id="msg" placeholder="Message, escapes like \r\n work" disabled aria-label="Message to send" spellcheck="false"></div>
+      <div class="inputwrap"><div class="hl" id="hl" aria-hidden="true"></div><input type="text" id="msg" placeholder="Message" disabled aria-label="Message to send" spellcheck="false"></div>
       <button class="primary" id="sendBtn" disabled><i class="fa-solid fa-paper-plane"></i> Send</button>
     </form>
   </main>
@@ -187,7 +193,7 @@
   };
 
   const fields = [baud, databits, parity, stopbits, flow, eol];
-  const toggles = [stamps, autoscroll, autoreconnect];
+  const toggles = [stamps, highlight, autoscroll, autoreconnect];
 
   function loadSettings() {
     const saved = store.get('settings', {});
@@ -203,7 +209,10 @@
     store.set('settings', out);
   }
   [...fields, ...toggles].forEach(el => el.addEventListener('change', saveSettings));
+  const applyHighlight = () => document.body.classList.toggle('nohl', !highlight.checked);
+  highlight.addEventListener('change', applyHighlight);
   loadSettings();
+  applyHighlight();
 
   let ports = [];
   let selected;               // a port, null = the "Pair a new device" row, undefined = not chosen yet
@@ -266,7 +275,7 @@
     const c = newLine('tx').lastChild;
     c.appendChild(document.createTextNode('> '));
     renderEscapes(c, raw, 'esc');
-    for (const ch of ending) c.appendChild(chip(visible(ch), 'esc'));
+    for (const ch of ending) c.appendChild(chip(visible(ch), 'esc eol'));
     rxLine = null; follow();
   }
 
@@ -275,7 +284,7 @@
       if (!rxLine) rxLine = newLine('rx');
       const c = rxLine.lastChild;
       if (ch === '\r' || ch === '\n') {
-        c.appendChild(chip(visible(ch), 'esc'));
+        c.appendChild(chip(visible(ch), 'esc eol'));
         if (ch === '\n') rxLine = null;
       } else {
         const last = c.lastChild;

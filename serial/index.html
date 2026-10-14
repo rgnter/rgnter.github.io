@@ -67,6 +67,10 @@
   .dot.on { background: currentColor; }
   .device-row.lost, .device-row.lost:hover:not(:disabled) { background: #d32f2f; color: #fff; }
   .device-row.lost .ps { opacity: .9; }
+  .details { margin: 10px 0 0; padding: 12px; background: var(--bg); font-size: 12px; display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; }
+  .details:empty { display: none; }
+  .details dt { color: var(--muted); }
+  .details dd { margin: 0; word-break: break-all; }
   .row { display: flex; gap: 6px; }
   .row > * { flex: 1; }
   .stack > * + * { margin-top: 6px; }
@@ -114,6 +118,7 @@
     <section>
       <h2>USB configuration</h2>
       <div class="device-list" id="deviceList"></div>
+      <dl class="details" id="deviceDetails"></dl>
     </section>
 
     <section>
@@ -210,6 +215,8 @@ const MAX_SENT_HISTORY = 100;
 const ESCAPE_SPLIT_PATTERN = /(\\[rnt0\\])/g;
 const ESCAPE_REPLACE_PATTERN = /\\([rnt0\\])/g;
 const ESCAPE_CHARACTERS = { r: '\r', n: '\n', t: '\t', '0': '\0', '\\': '\\' };
+
+const DEVICE_CLASS_NAMES = { 0x00: 'Defined per interface', 0x02: 'CDC', 0xef: 'Composite', 0xff: 'Vendor specific' };
 
 const usbSupported = 'usb' in navigator;
 const textDecoder = new TextDecoder();
@@ -586,9 +593,12 @@ function sameDevice(a, b) {
 }
 
 const formatHex4 = number => number.toString(16).padStart(4, '0');
+const formatHex2 = number => number.toString(16).padStart(2, '0');
+
+const formatUsbId = device => `${formatHex4(device.vendorId)}:${formatHex4(device.productId)}`;
 
 function describeDevice(device) {
-  const ids = `${formatHex4(device.vendorId)}:${formatHex4(device.productId)}`;
+  const ids = formatUsbId(device);
   return device.productName ? `${device.productName} · ${ids}` : ids;
 }
 
@@ -728,6 +738,7 @@ function renderDeviceList() {
   deviceList.textContent = '';
   buildDeviceRows().forEach((row, index) => deviceList.appendChild(createDeviceButton(row, index + 1)));
   deviceList.appendChild(createPairButton());
+  renderDeviceDetails();
   updateActionStates();
 }
 
@@ -748,12 +759,74 @@ function setSelectedDevice(device) {
     const isSelected = button._device === null ? device === null : !!device && sameDevice(button._device, device);
     button.classList.toggle('selected', isSelected);
   });
+  renderDeviceDetails();
   updateActionStates();
 }
 
 function setStatus(text, active) {
   statusText.textContent = text;
   statusDot.className = 'dot' + (active ? ' on' : '');
+}
+
+/* =====================================================================
+   Device details panel
+   ===================================================================== */
+
+function formatVersion(major, minor, subminor) {
+  return `${major}.${minor}${subminor ? `.${subminor}` : ''}`;
+}
+
+function describeDeviceClass(device) {
+  return DEVICE_CLASS_NAMES[device.deviceClass] || `0x${formatHex2(device.deviceClass)}`;
+}
+
+function describeConnectionState(device) {
+  if (isConnectedTo(device)) return 'Connected';
+  if (isLostDevice(device)) return 'Connection lost';
+  return 'Available';
+}
+
+function describeInterfaces(layout) {
+  const control = layout.controlInterface === null ? '' : `control ${layout.controlInterface}, `;
+  return `${control}data ${layout.data.interfaceNumber}`;
+}
+
+function describeEndpoints(layout) {
+  const { endpointIn, endpointOut } = layout.data;
+  return `IN ${endpointIn.endpointNumber}, OUT ${endpointOut.endpointNumber} · ${endpointIn.packetSize} B packets`;
+}
+
+// Label/value pairs for the selected device. Rows without a value are left out.
+function buildDeviceDetails(device) {
+  const layout = findCdcLayout(device);
+  return [
+    ['Status', describeConnectionState(device)],
+    ['Product', device.productName],
+    ['Manufacturer', device.manufacturerName],
+    ['Serial', device.serialNumber],
+    ['USB ID', formatUsbId(device)],
+    ['USB version', formatVersion(device.usbVersionMajor, device.usbVersionMinor, device.usbVersionSubminor)],
+    ['Device version', formatVersion(device.deviceVersionMajor, device.deviceVersionMinor, device.deviceVersionSubminor)],
+    ['Class', describeDeviceClass(device)],
+    ['Interfaces', layout && describeInterfaces(layout)],
+    ['Endpoints', layout && describeEndpoints(layout)],
+  ].filter(([, value]) => value);
+}
+
+function createDetailRow(label, value) {
+  const name = document.createElement('dt');
+  name.textContent = label;
+  const content = document.createElement('dd');
+  content.textContent = value;
+  return [name, content];
+}
+
+function renderDeviceDetails() {
+  deviceDetails.textContent = '';
+  if (!state.selected) return;
+  for (const [label, value] of buildDeviceDetails(state.selected)) {
+    deviceDetails.append(...createDetailRow(label, value));
+  }
 }
 
 /* =====================================================================

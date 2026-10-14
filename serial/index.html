@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Serial terminal</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#000000">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bitcount+Single:wght@100..900&family=JetBrains+Mono:wght@100..800&display=swap" rel="stylesheet">
@@ -145,11 +148,9 @@
 
     <section>
       <h2>Application behaviour</h2>
-      <h2>Console</h2>
-      <label class="check"><input type="checkbox" id="stamps" checked> Timestamps</label>
+      <label class="check"><input type="checkbox" id="stamps" checked> Timestamps in console</label>
       <label class="check"><input type="checkbox" id="highlight" checked> Highlight line endings</label>
-      <label class="check"><input type="checkbox" id="autoscroll" checked> Auto-scroll</label>
-      <h2>Device</h2>
+      <label class="check"><input type="checkbox" id="autoscroll" checked> Auto-scroll console</label>
       <label class="check"><input type="checkbox" id="autoreconnect" checked> Auto-reconnect</label>
     </section>
 

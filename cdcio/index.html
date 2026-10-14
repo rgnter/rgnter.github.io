@@ -459,8 +459,8 @@ function restoreConsole() {
   const saved = readStorage('log', '');
   if (!saved) return;
   term.innerHTML = saved;
+  printInfo('End of the earlier session...');
   markConsoleLinesAsOld();
-  printInfo('Earlier session');
 }
 
 function markConsoleLinesAsOld() {

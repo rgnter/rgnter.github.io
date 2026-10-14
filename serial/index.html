@@ -49,18 +49,21 @@
   label.field { display: block; font-size: 14px; color: var(--muted); margin-bottom: 10px; }
   label.field select { margin-top: 4px; }
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; column-gap: 10px; }
+  .grid2 .wide { grid-column: 1 / -1; }
   .check { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
 
-  .ports { display: flex; flex-direction: column; gap: 6px; }
-  .port { width: 100%; justify-content: flex-start; align-items: flex-start; text-align: left; }
-  .port .dot { margin-top: 5px; }
-  .port.pair { align-items: center; }
-  .port .ico { font-size: 12px; width: 10px; text-align: center; flex: none; }
-  .port .pt { font-weight: 600; }
-  .port .ps { font-size: 12px; font-weight: 400; opacity: .7; word-break: break-all; }
-  .port.selected { background: var(--ink); color: var(--on-ink); }
+  .device-list { display: flex; flex-direction: column; gap: 6px; }
+  .device-row { width: 100%; justify-content: flex-start; align-items: flex-start; text-align: left; }
+  .device-row .dot { margin-top: 5px; }
+  .device-row.pair { align-items: center; }
+  .device-row .ico { font-size: 12px; width: 10px; text-align: center; flex: none; }
+  .device-row .pt { font-weight: 600; }
+  .device-row .ps { font-size: 12px; font-weight: 400; opacity: .7; word-break: break-all; }
+  .device-row.selected { background: var(--ink); color: var(--on-ink); }
   .dot { width: 10px; height: 10px; border: 2px solid currentColor; flex: none; }
   .dot.on { background: currentColor; }
+  .device-row.lost, .device-row.lost:hover:not(:disabled) { background: #d32f2f; color: #fff; }
+  .device-row.lost .ps { opacity: .9; }
   .row { display: flex; gap: 6px; }
   .row > * { flex: 1; }
   .stack > * + * { margin-top: 6px; }
@@ -75,6 +78,7 @@
   }
   @media (prefers-color-scheme: dark) { #term { background: #141414; } }
   #term .ln { display: block; min-height: 1.5em; }
+  #term .ln.old { filter: brightness(.45); }
   #term .t { color: #8a8a8a; margin-right: 10px; user-select: none; }
   #term .tx { opacity: .6; }
   #term .sys { color: #8a8a8a; }
@@ -99,14 +103,14 @@
 </style>
 </head>
 <body>
-<div class="unsupported" id="unsupported">Web Serial isn't supported here. Use Chrome, Edge or Opera.</div>
+<div class="unsupported" id="unsupported">WebUSB isn't supported here. Use Chrome, Edge or Opera.</div>
 <div class="app">
   <aside>
     <h1>Serial terminal</h1>
 
     <section>
       <h2>USB configuration</h2>
-      <div class="ports" id="portList"></div>
+      <div class="device-list" id="deviceList"></div>
     </section>
 
     <section>
@@ -122,14 +126,11 @@
         <label class="field">Data bits
           <select id="databits"><option>7</option><option selected>8</option></select>
         </label>
-        <label class="field">Parity
-          <select id="parity"><option value="none" selected>None</option><option value="even">Even</option><option value="odd">Odd</option></select>
-        </label>
         <label class="field">Stop bits
           <select id="stopbits"><option selected>1</option><option>2</option></select>
         </label>
-        <label class="field">Flow control
-          <select id="flow"><option value="none" selected>None</option><option value="hardware">RTS/CTS</option></select>
+        <label class="field wide">Parity
+          <select id="parity"><option value="none" selected>None</option><option value="even">Even</option><option value="odd">Odd</option></select>
         </label>
       </div>
       <label class="field">Line ending
@@ -143,8 +144,8 @@
     </section>
 
     <section>
-      <h2>Application configuration</h2>
-      <h2>Console</h3>
+      <h2>Application behaviour</h2>
+      <h2>Console</h2>
       <label class="check"><input type="checkbox" id="stamps" checked> Timestamps</label>
       <label class="check"><input type="checkbox" id="highlight" checked> Highlight line endings</label>
       <label class="check"><input type="checkbox" id="autoscroll" checked> Auto-scroll</label>
@@ -158,7 +159,7 @@
         <button id="connect" disabled><i class="fa-solid fa-plug"></i> Connect</button>
         <button id="disconnect" disabled><i class="fa-solid fa-power-off"></i> Disconnect</button>
       </div>
-      <button id="forget" disabled style="width:100%"><i class="fa-solid fa-trash"></i> Unpair the device</button>
+      <button id="forget" disabled style="width:100%"><i class="fa-solid fa-trash"></i> Remove device</button>
     </section>
   </aside>
 
@@ -169,398 +170,1014 @@
     </div>
     <div id="term" aria-live="polite"></div>
     <form class="send" id="sendForm" autocomplete="off">
-      <div class="inputwrap"><div class="hl" id="hl" aria-hidden="true"></div><input type="text" id="msg" placeholder="Message" disabled aria-label="Message to send" spellcheck="false"></div>
+      <div class="inputwrap"><div class="hl" id="hl" aria-hidden="true"></div><input type="text" id="msg" placeholder="Message, escapes like \r\n work" disabled aria-label="Message to send" spellcheck="false"></div>
       <button class="primary" id="sendBtn" disabled><i class="fa-solid fa-paper-plane"></i> Send</button>
     </form>
   </main>
 </div>
 
 <script>
-(() => {
-  const supported = 'serial' in navigator;
-  if (!supported) unsupported.style.display = 'block';
+'use strict';
 
-  // ---------- persistence (localStorage) ----------
-  const store = {
-    get(key, fallback) {
-      try { const v = localStorage.getItem('serial-terminal:' + key); return v === null ? fallback : JSON.parse(v); }
-      catch (_) { return fallback; }
-    },
-    set(key, value) {
-      try { localStorage.setItem('serial-terminal:' + key, JSON.stringify(value)); return true; }
-      catch (_) { return false; }
-    },
-  };
+/* =====================================================================
+   Constants
+   ===================================================================== */
 
-  const fields = [baud, databits, parity, stopbits, flow, eol];
-  const toggles = [stamps, highlight, autoscroll, autoreconnect];
+const STORAGE_PREFIX = 'serial-terminal:';
 
-  function loadSettings() {
-    const saved = store.get('settings', {});
-    for (const el of fields) {
-      if ([...el.options].some(o => o.value === saved[el.id])) el.value = saved[el.id];
-    }
-    for (const el of toggles) if (el.id in saved) el.checked = !!saved[el.id];
+// USB: CDC ACM (the class behind /dev/ttyACM*)
+const CDC_FILTERS = [{ classCode: 0x02, subclassCode: 0x02 }, { classCode: 0x0a }];
+const CDC_COMMUNICATIONS_CLASS = 0x02;
+const CDC_ACM_SUBCLASS = 0x02;
+const CDC_DATA_CLASS = 0x0a;
+const CDC_SET_LINE_CODING = 0x20;
+const CDC_SET_CONTROL_LINE_STATE = 0x22;
+const CDC_DTR_AND_RTS = 0x03;
+const STOP_BITS_CODE = { 1: 0, 2: 2 };
+const PARITY_CODE = { none: 0, odd: 1, even: 2 };
+const READ_PACKETS_PER_TRANSFER = 8;
+
+// Timing and limits
+const LOST_DEVICE_MS = 10000;
+const RECONNECT_INTERVAL_MS = 1000;
+const LOG_SAVE_DELAY_MS = 1000;
+const MAX_CONSOLE_LINES = 5000;
+const SAVED_CONSOLE_LINES = 1000;
+const MAX_SENT_HISTORY = 100;
+
+// Escape sequences the user can type in a message
+const ESCAPE_SPLIT_PATTERN = /(\\[rnt0\\])/g;
+const ESCAPE_REPLACE_PATTERN = /\\([rnt0\\])/g;
+const ESCAPE_CHARACTERS = { r: '\r', n: '\n', t: '\t', '0': '\0', '\\': '\\' };
+
+const usbSupported = 'usb' in navigator;
+const textDecoder = new TextDecoder();
+const textEncoder = new TextEncoder();
+
+// Controls whose values are saved as settings
+const settingSelects = [baud, databits, parity, stopbits, eol];
+const settingToggles = [stamps, highlight, autoscroll, autoreconnect];
+const serialControls = [baud, databits, parity, stopbits];
+
+/* =====================================================================
+   State
+   ===================================================================== */
+
+const state = {
+  devices: [],              // authorised USB devices that expose a CDC serial interface
+  selected: undefined,      // a USBDevice, null = "Pair a new device" row, undefined = not chosen yet
+  connection: null,         // the open connection, if any
+  lastDevice: null,         // identity of the device used last
+  reconnectTarget: null,    // { device, options } to reopen after a lost connection
+  reconnectTimer: null,
+  isReconnecting: false,
+  lostDevice: null,         // { device, index } shown in red for a few seconds
+  lostTimer: 0,
+  isPairing: false,
+  receiveLine: null,        // console line currently receiving text
+  logSaveTimer: 0,
+  sentHistory: [],
+  historyPosition: 0,
+};
+
+/* =====================================================================
+   Storage
+   ===================================================================== */
+
+function readStorage(key, fallback) {
+  try {
+    const value = localStorage.getItem(STORAGE_PREFIX + key);
+    return value === null ? fallback : JSON.parse(value);
+  } catch (_) {
+    return fallback;
   }
-  function saveSettings() {
-    const out = {};
-    for (const el of fields) out[el.id] = el.value;
-    for (const el of toggles) out[el.id] = el.checked;
-    store.set('settings', out);
+}
+
+function writeStorage(key, value) {
+  try {
+    localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(value));
+    return true;
+  } catch (_) {
+    return false;
   }
-  [...fields, ...toggles].forEach(el => el.addEventListener('change', saveSettings));
-  const applyHighlight = () => document.body.classList.toggle('nohl', !highlight.checked);
-  highlight.addEventListener('change', applyHighlight);
-  loadSettings();
-  applyHighlight();
+}
 
-  let ports = [];
-  let selected;               // a port, null = the "Pair a new device" row, undefined = not chosen yet
-  let target = null;          // last port the user connected to: { port, options, vid, pid }
-  let retry = null;           // reconnect timer
-  let conn = null;            // { port, reader, done }
-  let lastPort = store.get('lastPort', null);   // { vid, pid } of the device used last
-  const history = store.get('history', []); let histPos = history.length;
+/* =====================================================================
+   Settings
+   ===================================================================== */
 
-  // ---------- terminal ----------
-  const stamp = () => new Date().toLocaleTimeString([], { hour12: false }) + '.' + String(Date.now() % 1000).padStart(3, '0');
-  let rxLine = null;
+function loadSettings() {
+  const saved = readStorage('settings', {});
+  for (const select of settingSelects) restoreSelectValue(select, saved[select.id]);
+  for (const toggle of settingToggles) restoreToggleValue(toggle, saved[toggle.id]);
+}
 
-  function newLine(cls) {
-    const el = document.createElement('span');
-    el.className = 'ln ' + cls;
-    if (stamps.checked) {
-      const t = document.createElement('span'); t.className = 't'; t.textContent = stamp(); el.appendChild(t);
-    }
-    el.appendChild(document.createElement('span'));
-    term.appendChild(el);
-    return el;
-  }
-  let saveTimer = 0;
-  function persistLog() {
-    clearTimeout(saveTimer); saveTimer = 0;
-    let nodes = [...term.children].slice(-1000);
-    // if storage is full, keep halving until it fits
-    while (!store.set('log', nodes.map(n => n.outerHTML).join('')) && nodes.length > 20) {
-      nodes = nodes.slice(Math.ceil(nodes.length / 2));
-    }
-  }
-  function follow() {
-    while (term.childElementCount > 5000) term.firstChild.remove();
-    if (autoscroll.checked) term.scrollTop = term.scrollHeight;
-    if (!saveTimer) saveTimer = setTimeout(persistLog, 1000);
-  }
-  function print(text, cls) { newLine(cls).lastChild.textContent = text; rxLine = null; follow(); }
+function restoreSelectValue(select, value) {
+  const isKnownOption = [...select.options].some(option => option.value === value);
+  if (isKnownOption) select.value = value;
+}
 
-  const decoder = new TextDecoder();
-  const ESC_RE = /(\\[rnt0\\])/g;
-  const ESC_MAP = { r: '\r', n: '\n', t: '\t', '0': '\0', '\\': '\\' };
-  const unescape = str => str.replace(/\\([rnt0\\])/g, (_, c) => ESC_MAP[c]);
-  const visible = ch => ch === '\r' ? '\\r' : ch === '\n' ? '\\n' : ch;
+function restoreToggleValue(toggle, value) {
+  if (typeof value === 'boolean') toggle.checked = value;
+}
 
-  function chip(text, cls) {
-    const el = document.createElement('span');
-    el.className = cls; el.textContent = text;
-    return el;
-  }
-  // Writes text into el, wrapping escape sequences like \r\n in highlighted chips.
-  function renderEscapes(el, text, cls) {
-    text.split(ESC_RE).forEach((part, i) => {
-      if (!part) return;
-      if (i % 2) el.appendChild(chip(part, cls));
-      else el.appendChild(document.createTextNode(part));
-    });
-  }
-  function printTx(raw, ending) {
-    const c = newLine('tx').lastChild;
-    c.appendChild(document.createTextNode('> '));
-    renderEscapes(c, raw, 'esc');
-    for (const ch of ending) c.appendChild(chip(visible(ch), 'esc eol'));
-    rxLine = null; follow();
-  }
+function saveSettings() {
+  const settings = {};
+  for (const select of settingSelects) settings[select.id] = select.value;
+  for (const toggle of settingToggles) settings[toggle.id] = toggle.checked;
+  writeStorage('settings', settings);
+}
 
-  function showRx(bytes) {
-    for (const ch of decoder.decode(bytes, { stream: true })) {
-      if (!rxLine) rxLine = newLine('rx');
-      const c = rxLine.lastChild;
-      if (ch === '\r' || ch === '\n') {
-        c.appendChild(chip(visible(ch), 'esc eol'));
-        if (ch === '\n') rxLine = null;
-      } else {
-        const last = c.lastChild;
-        if (last && last.nodeType === 3) last.data += ch;
-        else c.appendChild(document.createTextNode(ch));
-      }
-    }
-    follow();
-  }
+function applyHighlightSetting() {
+  document.body.classList.toggle('nohl', !highlight.checked);
+}
 
-  // ---------- ports ----------
-  const hex4 = n => n.toString(16).padStart(4, '0');
-
-  // Web Serial only exposes the USB vendor and product IDs.
-  function details(port) {
-    const { usbVendorId: v, usbProductId: p } = port.getInfo();
-    return v === undefined ? 'Not a USB port' : `${hex4(v)}:${hex4(p)}`;
-  }
-
-  function isLast(p) {
-    const i = p.getInfo();
-    return !!lastPort && i.usbVendorId === lastPort.vid && i.usbProductId === lastPort.pid;
-  }
-  function remember(p) {
-    const i = p.getInfo();
-    lastPort = { vid: i.usbVendorId, pid: i.usbProductId };
-    store.set('lastPort', lastPort);
-  }
-
-  async function refresh() {
-    if (!supported) return;
-    ports = await navigator.serial.getPorts();
-    if (selected && !ports.includes(selected)) selected = undefined;
-    if (selected === undefined) selected = (conn && conn.port) || ports.find(isLast) || ports[0] || null;
-    render();
-  }
-
-  function render() {
-    portList.textContent = '';
-    ports.forEach((p, i) => {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'port' + (p === selected ? ' selected' : '');
-      const dot = document.createElement('span');
-      dot.className = 'dot' + (conn && conn.port === p ? ' on' : '');
-      const text = document.createElement('div');
-      const pt = document.createElement('div'); pt.className = 'pt'; pt.textContent = `Device ${i + 1}`;
-      const ps = document.createElement('div'); ps.className = 'ps'; ps.textContent = details(p);
-      text.append(pt, ps);
-      b.append(dot, text);
-      b.onclick = () => { selected = p; remember(p); render(); };
-      portList.appendChild(b);
-    });
-
-    const pair = document.createElement('button');
-    pair.type = 'button';
-    pair.className = 'port pair' + (selected === null ? ' selected' : '');
-    const ico = document.createElement('i'); ico.className = 'fa-solid fa-plus ico';
-    const label = document.createElement('div'); label.className = 'pt'; label.textContent = 'Pair a new device';
-    pair.append(ico, label);
-    pair.onclick = pairDevice;
-    portList.appendChild(pair);
-
-    const live = !!conn;
-    connect.disabled = !selected || live;
-    disconnect.disabled = !selected || (!live && !retry);
-    forget.disabled = !selected || typeof selected.forget !== 'function';
-    msg.disabled = !live;
-    sendBtn.disabled = !live;
-    for (const el of [baud, databits, parity, stopbits, flow]) el.disabled = live;
-  }
-
-  function setStatus(text, on) {
-    statusText.textContent = text;
-    statusDot.className = 'dot' + (on ? ' on' : '');
-  }
-
-  // ---------- connect / read / disconnect ----------
-  const serialOptions = () => ({
+function readSerialOptions() {
+  return {
     baudRate: parseInt(baud.value, 10),
     dataBits: parseInt(databits.value, 10),
     parity: parity.value,
     stopBits: parseInt(stopbits.value, 10),
-    flowControl: flow.value,
+  };
+}
+
+/* =====================================================================
+   Escape sequences (\r \n \t \0 \\)
+   ===================================================================== */
+
+function unescapeText(text) {
+  return text.replace(ESCAPE_REPLACE_PATTERN, (_, character) => ESCAPE_CHARACTERS[character]);
+}
+
+function lineEndingLabel(character) {
+  if (character === '\r') return '\\r';
+  if (character === '\n') return '\\n';
+  return character;
+}
+
+/* =====================================================================
+   Console: building lines
+   ===================================================================== */
+
+function formatTimestamp() {
+  const time = new Date().toLocaleTimeString([], { hour12: false });
+  return `${time}.${String(Date.now() % 1000).padStart(3, '0')}`;
+}
+
+function createTimestamp() {
+  const stamp = document.createElement('span');
+  stamp.className = 't';
+  stamp.textContent = formatTimestamp();
+  return stamp;
+}
+
+function createConsoleLine(kind) {
+  const line = document.createElement('span');
+  line.className = `ln ${kind}`;
+  if (stamps.checked) line.appendChild(createTimestamp());
+  line.appendChild(document.createElement('span'));
+  term.appendChild(line);
+  return line;
+}
+
+function lineContent(line) {
+  return line.lastChild;
+}
+
+function createChip(text, className) {
+  const chip = document.createElement('span');
+  chip.className = className;
+  chip.textContent = text;
+  return chip;
+}
+
+// Appends text, wrapping any escape sequence (like \r\n) in a highlighted chip.
+function appendTextWithEscapeChips(parent, text, chipClass) {
+  text.split(ESCAPE_SPLIT_PATTERN).forEach((part, index) => {
+    if (!part) return;
+    const isEscape = index % 2 === 1;
+    parent.appendChild(isEscape ? createChip(part, chipClass) : document.createTextNode(part));
   });
+}
 
-  async function openPort(port, options, quiet) {
-    try {
-      await port.open(options);
-    } catch (e) {
-      if (!quiet) {
-        let hint = '';
-        if (/denied|permission/i.test(e.message)) hint = ' Add your user to the dialout group and log in again.';
-        else if (/open|busy|in use/i.test(e.message)) hint = ' The port may be in use by another program.';
-        print('Could not open port: ' + e.message + hint, 'bad');
+/* =====================================================================
+   Console: housekeeping
+   ===================================================================== */
+
+function trimConsole() {
+  while (term.childElementCount > MAX_CONSOLE_LINES) term.firstChild.remove();
+}
+
+function scrollConsoleIfEnabled() {
+  if (autoscroll.checked) term.scrollTop = term.scrollHeight;
+}
+
+function afterConsoleChange() {
+  trimConsole();
+  scrollConsoleIfEnabled();
+  scheduleConsoleSave();
+}
+
+/* =====================================================================
+   Console: printing
+   ===================================================================== */
+
+function printMessage(text, kind) {
+  lineContent(createConsoleLine(kind)).textContent = text;
+  state.receiveLine = null;
+  afterConsoleChange();
+}
+
+const printInfo = text => printMessage(text, 'sys');
+const printError = text => printMessage(text, 'bad');
+
+function printSent(rawText, ending) {
+  const content = lineContent(createConsoleLine('tx'));
+  content.appendChild(document.createTextNode('> '));
+  appendTextWithEscapeChips(content, rawText, 'esc');
+  for (const character of ending) content.appendChild(createChip(lineEndingLabel(character), 'esc eol'));
+  state.receiveLine = null;
+  afterConsoleChange();
+}
+
+function printReceived(bytes) {
+  for (const character of textDecoder.decode(bytes, { stream: true })) appendReceivedCharacter(character);
+  afterConsoleChange();
+}
+
+function currentReceiveContent() {
+  if (!state.receiveLine) state.receiveLine = createConsoleLine('rx');
+  return lineContent(state.receiveLine);
+}
+
+function appendReceivedCharacter(character) {
+  const content = currentReceiveContent();
+  if (character === '\r' || character === '\n') appendReceivedLineEnding(content, character);
+  else appendReceivedText(content, character);
+}
+
+function appendReceivedLineEnding(content, character) {
+  content.appendChild(createChip(lineEndingLabel(character), 'esc eol'));
+  if (character === '\n') state.receiveLine = null;
+}
+
+function appendReceivedText(content, character) {
+  const last = content.lastChild;
+  if (last && last.nodeType === Node.TEXT_NODE) last.data += character;
+  else content.appendChild(document.createTextNode(character));
+}
+
+/* =====================================================================
+   Console: saving, restoring, clearing
+   ===================================================================== */
+
+function scheduleConsoleSave() {
+  if (!state.logSaveTimer) state.logSaveTimer = setTimeout(saveConsole, LOG_SAVE_DELAY_MS);
+}
+
+function saveConsole() {
+  clearTimeout(state.logSaveTimer);
+  state.logSaveTimer = 0;
+  let lines = [...term.children].slice(-SAVED_CONSOLE_LINES);
+  // if storage is full, keep halving until it fits
+  while (!writeStorage('log', lines.map(line => line.outerHTML).join('')) && lines.length > 20) {
+    lines = lines.slice(Math.ceil(lines.length / 2));
+  }
+}
+
+function restoreConsole() {
+  const saved = readStorage('log', '');
+  if (!saved) return;
+  term.innerHTML = saved;
+  markConsoleLinesAsOld();
+  printInfo('Earlier session');
+}
+
+function markConsoleLinesAsOld() {
+  term.querySelectorAll('.ln').forEach(line => line.classList.add('old'));
+}
+
+function clearConsole() {
+  term.textContent = '';
+  state.receiveLine = null;
+  saveConsole();
+}
+
+/* =====================================================================
+   Message input: highlighting, history
+   ===================================================================== */
+
+function renderInputHighlight() {
+  hl.textContent = '';
+  appendTextWithEscapeChips(hl, msg.value, 'esc-in');
+  syncInputHighlightScroll();
+}
+
+function syncInputHighlightScroll() {
+  hl.scrollLeft = msg.scrollLeft;
+}
+
+function setMessageText(text) {
+  msg.value = text;
+  renderInputHighlight();
+}
+
+function rememberSentMessage(text) {
+  const history = state.sentHistory;
+  if (text && history[history.length - 1] !== text) history.push(text);
+  if (history.length > MAX_SENT_HISTORY) history.splice(0, history.length - MAX_SENT_HISTORY);
+  state.historyPosition = history.length;
+  writeStorage('history', history);
+}
+
+function recallPreviousMessage() {
+  if (state.historyPosition <= 0) return;
+  state.historyPosition -= 1;
+  setMessageText(state.sentHistory[state.historyPosition]);
+}
+
+function recallNextMessage() {
+  const last = state.sentHistory.length - 1;
+  if (state.historyPosition < last) {
+    state.historyPosition += 1;
+    setMessageText(state.sentHistory[state.historyPosition]);
+  } else {
+    state.historyPosition = state.sentHistory.length;
+    setMessageText('');
+  }
+}
+
+function handleMessageKeydown(event) {
+  if (event.key === 'ArrowUp') { recallPreviousMessage(); event.preventDefault(); }
+  if (event.key === 'ArrowDown') { recallNextMessage(); event.preventDefault(); }
+}
+
+/* =====================================================================
+   USB: reading a device's CDC layout
+   ===================================================================== */
+
+function findControlInterface(configuration) {
+  for (const usbInterface of configuration.interfaces) {
+    for (const alternate of usbInterface.alternates) {
+      if (alternate.interfaceClass === CDC_COMMUNICATIONS_CLASS && alternate.interfaceSubclass === CDC_ACM_SUBCLASS) {
+        return usbInterface.interfaceNumber;
       }
-      return false;
-    }
-    try { await port.setSignals({ dataTerminalReady: true, requestToSend: true }); } catch (_) {}
-    conn = { port, reader: null, done: null };
-    conn.done = readLoop(conn);
-    setStatus(`Connected · Device ${ports.indexOf(port) + 1} · ${options.baudRate} baud`, true);
-    print('Connected', 'sys');
-    render();
-    msg.focus();
-    return true;
-  }
-
-  async function connectPort() {
-    stopReconnect();
-    const port = selected;
-    const options = serialOptions();
-    if (await openPort(port, options, false)) {
-      const { usbVendorId: vid, usbProductId: pid } = port.getInfo();
-      target = { port, options, vid, pid };
-      remember(port);
     }
   }
+  return null;
+}
 
-  // After the device disappears, keep trying to reopen it once it is plugged back in.
-  function findTarget(list) {
-    return list.find(p => p === target.port) ||
-      (target.vid !== undefined && list.find(p => {
-        const i = p.getInfo();
-        return i.usbVendorId === target.vid && i.usbProductId === target.pid;
-      }));
-  }
+function findBulkEndpoint(alternate, direction) {
+  return alternate.endpoints.find(endpoint => endpoint.type === 'bulk' && endpoint.direction === direction);
+}
 
-  function startReconnect() {
-    if (retry || !target || conn) return;
-    setStatus('Waiting for device…', false);
-    print('Waiting for device', 'sys');
-    let busy = false;
-    retry = setInterval(async () => {
-      if (busy || conn) return;
-      busy = true;
-      try {
-        const p = findTarget(await navigator.serial.getPorts());
-        if (p && await openPort(p, target.options, true)) { target.port = p; selected = p; stopReconnect(); render(); }
-      } finally { busy = false; }
-    }, 1000);
-    render();
-  }
-
-  function stopReconnect() { clearInterval(retry); retry = null; }
-
-  async function readLoop(c) {
-    let lost = false;
-    while (c.port.readable) {
-      c.reader = c.port.readable.getReader();
-      try {
-        for (;;) {
-          const { value, done } = await c.reader.read();
-          if (done) break;
-          if (value && value.length) showRx(value);
-        }
-      } catch (e) {
-        if (!c.closing) { if (e.name !== 'NetworkError') print('Read error: ' + e.message, 'bad'); lost = true; }
-      } finally {
-        c.reader.releaseLock();
+function findDataInterface(configuration) {
+  for (const usbInterface of configuration.interfaces) {
+    for (const alternate of usbInterface.alternates) {
+      if (alternate.interfaceClass !== CDC_DATA_CLASS) continue;
+      const endpointIn = findBulkEndpoint(alternate, 'in');
+      const endpointOut = findBulkEndpoint(alternate, 'out');
+      if (endpointIn && endpointOut) {
+        return {
+          interfaceNumber: usbInterface.interfaceNumber,
+          alternateSetting: alternate.alternateSetting,
+          endpointIn,
+          endpointOut,
+        };
       }
-      if (c.closing || lost) break;
     }
-    if (!c.closing) { lost = true; await finish(c, true); }
   }
+  return null;
+}
 
-  async function disconnectPort() {
-    target = null;
-    stopReconnect();
-    if (!conn) { setStatus('Not connected', false); render(); return; }
-    const c = conn;
-    c.closing = true;
-    try { if (c.reader) await c.reader.cancel(); } catch (_) {}
-    await c.done;
-    await finish(c, false);
+// Returns { configurationValue, controlInterface, data } or null if the device is not a CDC serial device.
+function findCdcLayout(device) {
+  for (const configuration of device.configurations) {
+    const data = findDataInterface(configuration);
+    if (data) {
+      return {
+        configurationValue: configuration.configurationValue,
+        controlInterface: findControlInterface(configuration),
+        data,
+      };
+    }
   }
+  return null;
+}
 
-  async function finish(c, lost) {
-    if (conn !== c) return;
-    try { await c.port.close(); } catch (_) {}
-    conn = null; rxLine = null;
-    print(lost ? 'Connection lost' : 'Disconnected', 'sys');
+const isCdcDevice = device => findCdcLayout(device) !== null;
+
+/* =====================================================================
+   USB: device identity and descriptions
+   ===================================================================== */
+
+function deviceIdentity(device) {
+  return { vendorId: device.vendorId, productId: device.productId, serialNumber: device.serialNumber || '' };
+}
+
+function sameIdentity(a, b) {
+  return !!a && !!b && a.vendorId === b.vendorId && a.productId === b.productId && a.serialNumber === b.serialNumber;
+}
+
+// The same physical device can come back as a new USBDevice object after being replugged.
+function sameDevice(a, b) {
+  return a === b || sameIdentity(deviceIdentity(a), deviceIdentity(b));
+}
+
+const formatHex4 = number => number.toString(16).padStart(4, '0');
+
+function describeDevice(device) {
+  const ids = `${formatHex4(device.vendorId)}:${formatHex4(device.productId)}`;
+  return device.productName ? `${device.productName} · ${ids}` : ids;
+}
+
+function rememberLastDevice(device) {
+  state.lastDevice = deviceIdentity(device);
+  writeStorage('lastDevice', state.lastDevice);
+}
+
+const isLastDevice = device => sameIdentity(deviceIdentity(device), state.lastDevice);
+
+function deviceNumber(device) {
+  return state.devices.findIndex(candidate => sameDevice(candidate, device)) + 1;
+}
+
+/* =====================================================================
+   Device list: data
+   ===================================================================== */
+
+const isLocked = () => !!state.connection || !!state.reconnectTimer;
+
+const isConnectedTo = device => !!state.connection && sameDevice(state.connection.device, device);
+
+function isSelectedDevice(device) {
+  return !!state.selected && sameDevice(state.selected, device);
+}
+
+async function refreshDevices() {
+  if (!usbSupported) return;
+  const authorised = await navigator.usb.getDevices();
+  state.devices = authorised.filter(isCdcDevice);
+  if (!isLocked()) repairSelection();
+  renderDeviceList();
+}
+
+function repairSelection() {
+  if (state.selected) state.selected = state.devices.find(device => sameDevice(device, state.selected));
+  if (state.selected === undefined) state.selected = pickDefaultDevice();
+}
+
+function pickDefaultDevice() {
+  return state.devices.find(isLastDevice) || state.devices[0] || null;
+}
+
+/* =====================================================================
+   Device list: lost device (shown in red for a few seconds)
+   ===================================================================== */
+
+function isLostDevice(device) {
+  return !!state.lostDevice && sameDevice(state.lostDevice.device, device);
+}
+
+function markDeviceLost(connection) {
+  if (isLostDevice(connection.device)) return;
+  clearTimeout(state.lostTimer);
+  state.lostDevice = { device: connection.device, index: connection.index };
+  state.lostTimer = setTimeout(expireLostDevice, LOST_DEVICE_MS);
+  renderDeviceList();
+}
+
+function expireLostDevice() {
+  state.lostDevice = null;
+  state.lostTimer = 0;
+  refreshDevices();
+}
+
+function clearLostDevice() {
+  clearTimeout(state.lostTimer);
+  state.lostTimer = 0;
+  state.lostDevice = null;
+}
+
+/* =====================================================================
+   Device list: rendering
+   ===================================================================== */
+
+function buildDeviceRows() {
+  const rows = state.devices.map(device => ({ device, lost: isLostDevice(device), gone: false }));
+  insertGoneDeviceRow(rows);
+  return rows;
+}
+
+// A device that was unplugged is no longer listed by the browser, so keep a placeholder row for it.
+function insertGoneDeviceRow(rows) {
+  const lost = state.lostDevice;
+  if (!lost || rows.some(row => row.lost)) return;
+  const position = lost.index < 0 ? rows.length : Math.min(lost.index, rows.length);
+  rows.splice(position, 0, { device: lost.device, lost: true, gone: true });
+}
+
+function createDeviceButton(row, number) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button._device = row.device;
+  button.className = 'device-row' + (isSelectedDevice(row.device) ? ' selected' : '') + (row.lost ? ' lost' : '');
+  button.disabled = isLocked() && !isSelectedDevice(row.device) && !row.gone;
+  button.append(createStateDot(row.device), createDeviceText(row, number));
+  button.onclick = () => handleDeviceClick(row);
+  button.ondblclick = () => handleDeviceDoubleClick(row);
+  return button;
+}
+
+function createStateDot(device) {
+  const dot = document.createElement('span');
+  dot.className = 'dot' + (isConnectedTo(device) ? ' on' : '');
+  return dot;
+}
+
+function createDeviceText(row, number) {
+  const text = document.createElement('div');
+  const title = document.createElement('div');
+  title.className = 'pt';
+  title.textContent = `Device ${number}`;
+  const subtitle = document.createElement('div');
+  subtitle.className = 'ps';
+  subtitle.textContent = row.lost ? 'Connection lost' : describeDevice(row.device);
+  text.append(title, subtitle);
+  return text;
+}
+
+function createPairButton() {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button._device = null;
+  button.className = 'device-row pair' + (state.selected === null ? ' selected' : '');
+  button.disabled = isLocked();
+  const icon = document.createElement('i');
+  icon.className = 'fa-solid fa-plus ico';
+  const title = document.createElement('div');
+  title.className = 'pt';
+  title.textContent = 'Pair a new device';
+  button.append(icon, title);
+  button.onclick = pairNewDevice;
+  return button;
+}
+
+function renderDeviceList() {
+  deviceList.textContent = '';
+  buildDeviceRows().forEach((row, index) => deviceList.appendChild(createDeviceButton(row, index + 1)));
+  deviceList.appendChild(createPairButton());
+  updateActionStates();
+}
+
+function updateActionStates() {
+  const connected = !!state.connection;
+  connect.disabled = !state.selected || isLocked();
+  disconnect.disabled = !connected && !state.reconnectTimer;
+  forget.disabled = !state.selected || typeof state.selected.forget !== 'function';
+  msg.disabled = !connected;
+  sendBtn.disabled = !connected;
+  for (const control of serialControls) control.disabled = connected;
+}
+
+// Changes the selection without rebuilding the list, so a double click lands on the same element.
+function setSelectedDevice(device) {
+  state.selected = device;
+  deviceList.querySelectorAll('.device-row').forEach(button => {
+    const isSelected = button._device === null ? device === null : !!device && sameDevice(button._device, device);
+    button.classList.toggle('selected', isSelected);
+  });
+  updateActionStates();
+}
+
+function setStatus(text, active) {
+  statusText.textContent = text;
+  statusDot.className = 'dot' + (active ? ' on' : '');
+}
+
+/* =====================================================================
+   Device list: user interaction
+   ===================================================================== */
+
+function handleDeviceClick(row) {
+  if (row.gone || isLocked()) return;
+  setSelectedDevice(row.device);
+  rememberLastDevice(row.device);
+}
+
+function handleDeviceDoubleClick(row) {
+  if (row.gone) return;
+  if (isConnectedTo(row.device)) { disconnectCurrent(); return; }   // double click on the current device disconnects
+  if (isLocked()) return;
+  setSelectedDevice(row.device);                                    // double click on another device connects
+  connectSelected();
+}
+
+async function pairNewDevice() {
+  if (isLocked() || state.isPairing) return;
+  state.isPairing = true;
+  setSelectedDevice(null);
+  try {
+    const device = await navigator.usb.requestDevice({ filters: CDC_FILTERS });
+    await selectPairedDevice(device);
+  } catch (error) {
+    reportPairingError(error);
+  } finally {
+    state.isPairing = false;
+  }
+}
+
+async function selectPairedDevice(device) {
+  if (!isCdcDevice(device)) { printError('That device has no CDC serial interface.'); return; }
+  await refreshDevices();
+  if (!state.devices.includes(device)) state.devices.push(device);
+  state.selected = device;
+  rememberLastDevice(device);
+  renderDeviceList();
+}
+
+function reportPairingError(error) {
+  if (error.name !== 'NotFoundError') printError(error.message);
+}
+
+async function removeSelectedDevice() {
+  const device = state.selected;
+  if (!device) return;
+  cancelReconnectFor(device);
+  if (isConnectedTo(device)) await disconnectCurrent();
+  try {
+    await device.forget();
+  } catch (error) {
+    printError(`Could not remove device: ${error.message}`);
+    return;
+  }
+  state.selected = undefined;
+  await refreshDevices();
+  if (!isLocked()) setStatus('Not connected', false);
+}
+
+/* =====================================================================
+   USB: opening and closing
+   ===================================================================== */
+
+async function selectConfigurationIfNeeded(device, layout) {
+  const current = device.configuration;
+  if (!current || current.configurationValue !== layout.configurationValue) {
+    await device.selectConfiguration(layout.configurationValue);
+  }
+}
+
+async function openUsbInterfaces(device, layout) {
+  await device.open();
+  await selectConfigurationIfNeeded(device, layout);
+  if (layout.controlInterface !== null) await device.claimInterface(layout.controlInterface);
+  await device.claimInterface(layout.data.interfaceNumber);
+  await device.selectAlternateInterface(layout.data.interfaceNumber, layout.data.alternateSetting);
+}
+
+async function releaseUsbInterfaces(device, layout) {
+  await ignoreErrors(() => device.releaseInterface(layout.data.interfaceNumber));
+  if (layout.controlInterface !== null) await ignoreErrors(() => device.releaseInterface(layout.controlInterface));
+}
+
+async function closeUsbDevice(device) {
+  await ignoreErrors(() => device.close());
+}
+
+async function ignoreErrors(action) {
+  try { await action(); } catch (_) { /* the device may already be gone */ }
+}
+
+function connectionHint(error) {
+  if (/claim/i.test(error.message)) return ' Another driver or program is using the interface.';
+  if (/denied|access/i.test(error.message)) return ' Check your USB permissions.';
+  return '';
+}
+
+function reportOpenFailure(error) {
+  printError(`Could not connect: ${error.message}${connectionHint(error)}`);
+}
+
+/* =====================================================================
+   USB: CDC serial settings
+   ===================================================================== */
+
+function buildLineCoding(options) {
+  const view = new DataView(new ArrayBuffer(7));
+  view.setUint32(0, options.baudRate, true);
+  view.setUint8(4, STOP_BITS_CODE[options.stopBits]);
+  view.setUint8(5, PARITY_CODE[options.parity]);
+  view.setUint8(6, options.dataBits);
+  return view.buffer;
+}
+
+function sendClassRequest(device, interfaceNumber, request, value, data) {
+  return device.controlTransferOut(
+    { requestType: 'class', recipient: 'interface', request, value, index: interfaceNumber },
+    data,
+  );
+}
+
+function sendLineCoding(device, layout, options) {
+  return sendClassRequest(device, layout.controlInterface, CDC_SET_LINE_CODING, 0, buildLineCoding(options));
+}
+
+function sendControlLines(device, layout, active) {
+  return sendClassRequest(device, layout.controlInterface, CDC_SET_CONTROL_LINE_STATE, active ? CDC_DTR_AND_RTS : 0);
+}
+
+async function applySerialOptions(device, layout, options) {
+  if (layout.controlInterface === null) return;
+  try {
+    await sendLineCoding(device, layout, options);
+    await sendControlLines(device, layout, true);
+  } catch (_) {
+    printInfo('Device ignored the serial settings');
+  }
+}
+
+/* =====================================================================
+   Connection lifecycle
+   ===================================================================== */
+
+function createConnection(device, layout) {
+  return { device, layout, index: state.devices.findIndex(candidate => sameDevice(candidate, device)), isOpen: true };
+}
+
+// Opens the device and starts reading. Returns the connection, or null if it could not be opened.
+async function openConnection(device, options, quiet) {
+  if (!state.devices.includes(device)) await refreshDevices();
+  const layout = findCdcLayout(device);
+  if (!layout) {
+    if (!quiet) printError('This device has no CDC serial interface.');
+    return null;
+  }
+  try {
+    await openUsbInterfaces(device, layout);
+  } catch (error) {
+    await closeUsbDevice(device);
+    if (!quiet) reportOpenFailure(error);
+    return null;
+  }
+  await applySerialOptions(device, layout, options);
+  const connection = createConnection(device, layout);
+  startConnection(connection);
+  return connection;
+}
+
+function startConnection(connection) {
+  state.connection = connection;
+  clearLostDevice();
+  readLoop(connection);
+  setStatus(`Connected · Device ${deviceNumber(connection.device)}`, true);
+  printInfo('Connected');
+  renderDeviceList();
+  msg.focus();
+}
+
+async function connectSelected() {
+  const device = state.selected;
+  if (!device) return;
+  stopReconnect();
+  const options = readSerialOptions();
+  const connection = await openConnection(device, options, false);
+  if (!connection) return;
+  state.reconnectTarget = { device, options };
+  rememberLastDevice(device);
+}
+
+async function disconnectCurrent() {
+  state.reconnectTarget = null;
+  stopReconnect();
+  if (state.connection) {
+    await endConnection(state.connection, false);
+  } else {
     setStatus('Not connected', false);
-    render();
-    if (lost && autoreconnect.checked) startReconnect();
+    renderDeviceList();
   }
+}
 
-  // ---------- send ----------
-  async function send(text) {
-    if (!conn) return;
-    const ending = unescape(eol.value);
-    const bytes = new TextEncoder().encode(unescape(text) + ending);
-    const writer = conn.port.writable.getWriter();
+async function endConnection(connection, lost) {
+  if (state.connection !== connection) return;   // already ended
+  connection.isOpen = false;
+  state.connection = null;
+  state.receiveLine = null;
+  if (lost) markDeviceLost(connection);
+  await releaseConnection(connection, lost);
+  printInfo(lost ? 'Connection lost' : 'Disconnected');
+  setStatus('Not connected', false);
+  if (lost && autoreconnect.checked) startReconnect();   // also keeps the selection on the lost device
+  await refreshDevices();
+}
+
+async function releaseConnection(connection, lost) {
+  const { device, layout } = connection;
+  if (!lost && layout.controlInterface !== null) await ignoreErrors(() => sendControlLines(device, layout, false));
+  await releaseUsbInterfaces(device, layout);
+  await closeUsbDevice(device);
+}
+
+/* =====================================================================
+   Receiving
+   ===================================================================== */
+
+async function readLoop(connection) {
+  const endpoint = connection.layout.data.endpointIn;
+  const length = endpoint.packetSize * READ_PACKETS_PER_TRANSFER;
+  while (connection.isOpen) {
     try {
-      await writer.write(bytes);
-      printTx(text, ending);
-    } catch (e) { print('Send failed: ' + e.message, 'bad'); }
-    finally { writer.releaseLock(); }
+      await readOnce(connection, endpoint.endpointNumber, length);
+    } catch (error) {
+      handleReadError(connection, error);
+      return;
+    }
   }
+}
 
-  // Mirrors the input text behind it so \r, \n, \t etc. show up highlighted.
-  function syncHl() {
-    hl.textContent = '';
-    renderEscapes(hl, msg.value, 'esc-in');
-    hl.scrollLeft = msg.scrollLeft;
+async function readOnce(connection, endpointNumber, length) {
+  const result = await connection.device.transferIn(endpointNumber, length);
+  if (result.status === 'stall') { await connection.device.clearHalt('in', endpointNumber); return; }
+  if (result.status === 'babble') printError('Receive overflow, data may be lost.');
+  if (result.data && result.data.byteLength) {
+    printReceived(new Uint8Array(result.data.buffer, result.data.byteOffset, result.data.byteLength));
   }
-  function setMsg(v) { msg.value = v; syncHl(); }
-  msg.addEventListener('input', syncHl);
-  msg.addEventListener('scroll', () => { hl.scrollLeft = msg.scrollLeft; });
-  msg.addEventListener('keyup', () => { hl.scrollLeft = msg.scrollLeft; });
+}
 
-  // ---------- events ----------
-  async function pairDevice() {
-    selected = null;
-    render();
-    try {
-      const p = await navigator.serial.requestPort();
-      await refresh();
-      if (!ports.includes(p)) ports.push(p);
-      selected = p;
-      remember(p);
-      render();
-    } catch (e) { if (e.name !== 'NotFoundError') print(e.message, 'bad'); }
+function handleReadError(connection, error) {
+  if (!connection.isOpen) return;   // we closed it ourselves
+  if (error.name !== 'NetworkError') printError(`Read error: ${error.message}`);
+  endConnection(connection, true);
+}
+
+/* =====================================================================
+   Sending
+   ===================================================================== */
+
+function encodeOutgoing(text, ending) {
+  return textEncoder.encode(unescapeText(text) + ending);
+}
+
+function writeToDevice(connection, bytes) {
+  return connection.device.transferOut(connection.layout.data.endpointOut.endpointNumber, bytes);
+}
+
+async function sendMessage(text) {
+  const connection = state.connection;
+  if (!connection) return;
+  const ending = unescapeText(eol.value);
+  try {
+    await writeToDevice(connection, encodeOutgoing(text, ending));
+    printSent(text, ending);
+  } catch (error) {
+    printError(`Send failed: ${error.message}`);
   }
-  forget.onclick = async () => {
-    const port = selected;
-    if (target && target.port === port) { target = null; stopReconnect(); }
-    if (conn && conn.port === port) await disconnectPort();
-    try { await port.forget(); }
-    catch (e) { print('Could not remove port: ' + e.message, 'bad'); return; }
-    selected = undefined;
-    await refresh();
-    if (!conn && !retry) setStatus('Not connected', false);
-  };
-  autoreconnect.onchange = () => {
-    if (autoreconnect.checked) startReconnect();
-    else { stopReconnect(); if (!conn) setStatus('Not connected', false); render(); }
-  };
-  connect.onclick = connectPort;
-  disconnect.onclick = disconnectPort;
-  clear.onclick = () => { term.textContent = ''; rxLine = null; persistLog(); };
+}
 
-  sendForm.onsubmit = async e => {
-    e.preventDefault();
-    const v = msg.value;
-    if (!v && !eol.value) return;
-    if (v && history[history.length - 1] !== v) history.push(v);
-    if (history.length > 100) history.splice(0, history.length - 100);
-    histPos = history.length;
-    store.set('history', history);
-    setMsg('');
-    await send(v);
-  };
-  msg.onkeydown = e => {
-    if (e.key === 'ArrowUp' && histPos > 0) { setMsg(history[--histPos]); e.preventDefault(); }
-    if (e.key === 'ArrowDown') { setMsg(histPos < history.length - 1 ? history[++histPos] : (histPos = history.length, '')); e.preventDefault(); }
-  };
+async function handleSendSubmit(event) {
+  event.preventDefault();
+  const text = msg.value;
+  if (!text && !eol.value) return;
+  rememberSentMessage(text);
+  setMessageText('');
+  await sendMessage(text);
+}
 
-  const savedLog = store.get('log', '');
-  if (savedLog) { term.innerHTML = savedLog; print('Earlier session', 'sys'); }
-  addEventListener('pagehide', persistLog);
+/* =====================================================================
+   Auto-reconnect
+   ===================================================================== */
 
-  if (supported) {
-    navigator.serial.addEventListener('connect', refresh);
-    navigator.serial.addEventListener('disconnect', e => {
-      const c = conn;
-      if (c && c.port === e.target) {
-        // let the read loop notice first, then make sure we clean up
-        Promise.race([c.done, new Promise(r => setTimeout(r, 500))]).then(() => finish(c, true));
-      }
-      refresh();
-    });
-    refresh();
+function startReconnect() {
+  if (state.reconnectTimer || !state.reconnectTarget || state.connection) return;
+  setStatus('Waiting for device…', false);
+  printInfo('Waiting for device');
+  state.reconnectTimer = setInterval(tryReconnect, RECONNECT_INTERVAL_MS);
+  renderDeviceList();
+}
+
+function stopReconnect() {
+  clearInterval(state.reconnectTimer);
+  state.reconnectTimer = null;
+}
+
+function cancelReconnectFor(device) {
+  const target = state.reconnectTarget;
+  if (!target || !sameDevice(target.device, device)) return;
+  state.reconnectTarget = null;
+  stopReconnect();
+}
+
+async function tryReconnect() {
+  if (state.isReconnecting || state.connection) return;
+  state.isReconnecting = true;
+  try {
+    const device = await findReturnedDevice();
+    if (device) await reconnectTo(device);
+  } finally {
+    state.isReconnecting = false;
   }
-  render();
-})();
+}
+
+async function findReturnedDevice() {
+  const target = state.reconnectTarget;
+  if (!target) return null;
+  const authorised = (await navigator.usb.getDevices()).filter(isCdcDevice);
+  return authorised.find(device => sameDevice(device, target.device)) || null;
+}
+
+async function reconnectTo(device) {
+  const target = state.reconnectTarget;
+  if (!target) return;
+  const connection = await openConnection(device, target.options, true);
+  if (!connection) return;
+  target.device = device;
+  state.selected = device;
+  stopReconnect();
+  renderDeviceList();
+}
+
+function handleAutoReconnectToggle() {
+  if (autoreconnect.checked) {
+    startReconnect();
+    return;
+  }
+  stopReconnect();
+  if (!state.connection) setStatus('Not connected', false);
+  renderDeviceList();
+}
+
+/* =====================================================================
+   USB events
+   ===================================================================== */
+
+function handleUsbConnect() {
+  clearLostDevice();
+  refreshDevices();
+}
+
+function handleUsbDisconnect(event) {
+  const connection = state.connection;
+  if (connection && sameDevice(connection.device, event.device)) endConnection(connection, true);
+  else refreshDevices();
+}
+
+/* =====================================================================
+   Startup
+   ===================================================================== */
+
+function bindSettingEvents() {
+  for (const control of [...settingSelects, ...settingToggles]) control.addEventListener('change', saveSettings);
+  highlight.addEventListener('change', applyHighlightSetting);
+  autoreconnect.addEventListener('change', handleAutoReconnectToggle);
+}
+
+function bindActionEvents() {
+  connect.onclick = connectSelected;
+  disconnect.onclick = disconnectCurrent;
+  forget.onclick = removeSelectedDevice;
+  clear.onclick = clearConsole;
+}
+
+function bindMessageEvents() {
+  sendForm.onsubmit = handleSendSubmit;
+  msg.onkeydown = handleMessageKeydown;
+  msg.addEventListener('input', renderInputHighlight);
+  msg.addEventListener('scroll', syncInputHighlightScroll);
+  msg.addEventListener('keyup', syncInputHighlightScroll);
+}
+
+function bindUsbEvents() {
+  navigator.usb.addEventListener('connect', handleUsbConnect);
+  navigator.usb.addEventListener('disconnect', handleUsbDisconnect);
+}
+
+function loadSavedState() {
+  state.lastDevice = readStorage('lastDevice', null);
+  state.sentHistory = readStorage('history', []);
+  state.historyPosition = state.sentHistory.length;
+}
+
+function showUnsupportedNotice() {
+  unsupported.style.display = 'block';
+}
+
+function init() {
+  if (!usbSupported) showUnsupportedNotice();
+  loadSettings();
+  applyHighlightSetting();
+  loadSavedState();
+  bindSettingEvents();
+  bindActionEvents();
+  bindMessageEvents();
+  addEventListener('pagehide', saveConsole);
+  restoreConsole();
+  if (usbSupported) {
+    bindUsbEvents();
+    refreshDevices();
+  }
+  renderDeviceList();
+}
+
+init();
 </script>
 </body>
 </html>

@@ -26,16 +26,22 @@
   body {
     background: var(--bg); color: var(--ink); font: 400 15px/1.45 var(--font);
   }
-  .app { display: grid; grid-template-columns: 400px 1fr; height: 100%; gap: 16px; padding: 16px; max-width: 100%; margin: 0 auto; }
+  .app { display: grid; grid-template-columns: 600px 1fr; height: 100%; gap: 16px; padding: 16px; max-width: 100%; margin: 0 auto; }
   aside { background: var(--soft); padding: 20px; display: flex; flex-direction: column; gap: 24px; overflow: auto; min-height: 0; }
   main { display: flex; flex-direction: column; min-height: 0; gap: 12px; }
   h1 { font-size: 24px; margin: 0; font-weight: 700; line-height: 1.1; }
   h2 { font-size: 14px; margin: 0 0 10px; font-weight: 500; color: var(--muted); }
 
+  .details { margin: 0px 0 0; padding: 0px; font-size: 12px; display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; }
+  .details:empty { display: none; }
+  .details dt { color: var(--muted); white-space: nowrap; }
+  .details dd { margin: 0; word-break: break-all; }
+
   button {
     font: inherit; font-weight: 600; padding: 9px 14px; cursor: pointer; border: 0; border-radius: 0;
     background: var(--bg); color: var(--ink);
     display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    flex-direction: column;
   }
   aside button { background: var(--bg); }
   button:hover:not(:disabled) { background: var(--ink); color: var(--on-ink); }
@@ -67,10 +73,6 @@
   .dot.on { background: currentColor; }
   .device-row.lost, .device-row.lost:hover:not(:disabled) { background: #d32f2f; color: #fff; }
   .device-row.lost .ps { opacity: .9; }
-  .details { margin: 10px 0 0; padding: 12px; background: var(--bg); font-size: 12px; display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; }
-  .details:empty { display: none; }
-  .details dt { color: var(--muted); white-space: nowrap; }
-  .details dd { margin: 0; word-break: break-all; }
   .row { display: flex; gap: 6px; }
   .row > * { flex: 1; }
   .stack > * + * { margin-top: 6px; }
@@ -116,9 +118,8 @@
     <h1>USB-CDC IO</h1>
 
     <section>
-      <h2>USB configuration</h2>
+      <h2>Devices</h2>
       <div class="device-list" id="deviceList"></div>
-      <dl class="details" id="deviceDetails"></dl>
     </section>
 
     <section>
@@ -562,6 +563,7 @@ function findDataInterface(configuration) {
 
 // Returns { configurationValue, controlInterface, data } or null if the device is not a CDC serial device.
 function findCdcLayout(device) {
+  console.log(device)
   for (const configuration of device.configurations) {
     const data = findDataInterface(configuration);
     if (data) {
@@ -690,15 +692,35 @@ function insertGoneDeviceRow(rows) {
   rows.splice(position, 0, { device: lost.device, lost: true, gone: true });
 }
 
+function createDeviceDetailsButton(device)
+{
+  const details = document.createElement('dl');
+
+  details.className = 'details';
+
+  details.textContent = '';
+  for (const [label, value] of buildDeviceDetails(device)) {
+    details.append(...createDetailRow(label, value));
+  }
+
+  return details;
+}
+
 function createDeviceButton(row, number) {
   const button = document.createElement('button');
+
   button.type = 'button';
   button._device = row.device;
   button.className = 'device-row' + (isSelectedDevice(row.device) ? ' selected' : '') + (row.lost ? ' lost' : '');
   button.disabled = isLocked() && !isSelectedDevice(row.device) && !row.gone;
-  button.append(createStateDot(row.device), createDeviceText(row, number));
+  button.append(
+    createStateDot(row.device), 
+    createDeviceText(row, number));
   button.onclick = () => handleDeviceClick(row);
   button.ondblclick = () => handleDeviceDoubleClick(row);
+  button.append(
+    createDeviceDetailsButton(row.device))
+
   return button;
 }
 
@@ -738,9 +760,11 @@ function createPairButton() {
 
 function renderDeviceList() {
   deviceList.textContent = '';
-  buildDeviceRows().forEach((row, index) => deviceList.appendChild(createDeviceButton(row, index + 1)));
+
+  buildDeviceRows().forEach(
+    (row, index) => deviceList.appendChild(createDeviceButton(row, index + 1)));
   deviceList.appendChild(createPairButton());
-  renderDeviceDetails();
+
   updateActionStates();
 }
 
@@ -761,7 +785,6 @@ function setSelectedDevice(device) {
     const isSelected = button._device === null ? device === null : !!device && sameDevice(button._device, device);
     button.classList.toggle('selected', isSelected);
   });
-  renderDeviceDetails();
   updateActionStates();
 }
 
@@ -782,12 +805,6 @@ function describeDeviceClass(device) {
   return DEVICE_CLASS_NAMES[device.deviceClass] || `0x${formatHex2(device.deviceClass)}`;
 }
 
-function describeConnectionState(device) {
-  if (isConnectedTo(device)) return 'Connected';
-  if (isLostDevice(device)) return 'Connection lost';
-  return 'Available';
-}
-
 function describeInterfaces(layout) {
   const control = layout.controlInterface === null ? '' : `control ${layout.controlInterface}, `;
   return `${control}data ${layout.data.interfaceNumber}`;
@@ -801,8 +818,8 @@ function describeEndpoints(layout) {
 // Label/value pairs for the selected device. Rows without a value are left out.
 function buildDeviceDetails(device) {
   const layout = findCdcLayout(device);
+
   return [
-    ['Status', describeConnectionState(device)],
     ['Product', device.productName],
     ['Manufacturer', device.manufacturerName],
     ['Serial', device.serialNumber],
@@ -821,14 +838,6 @@ function createDetailRow(label, value) {
   const content = document.createElement('dd');
   content.textContent = value;
   return [name, content];
-}
-
-function renderDeviceDetails() {
-  deviceDetails.textContent = '';
-  if (!state.selected) return;
-  for (const [label, value] of buildDeviceDetails(state.selected)) {
-    deviceDetails.append(...createDetailRow(label, value));
-  }
 }
 
 /* =====================================================================
